@@ -89,7 +89,7 @@ export default function RootLayout() {
     if (!authInitialized) {
         return (
             <View style={styles.loading}>
-                <ActivityIndicator size="large" color="#4CAF50" />
+                <ActivityIndicator size="large" color="#22d3ee" />
             </View>
         );
     }

@@ -149,11 +149,11 @@ const styles = StyleSheet.create({
     actions: { gap: 12, marginBottom: 20 },
     pickBtn: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
     pickBtnText: { color: '#d4d4d8', fontSize: 15, fontWeight: '600' },
-    analyzeBtn: { backgroundColor: '#4CAF50', borderRadius: 14, paddingVertical: 16, alignItems: 'center', shadowColor: '#4CAF50', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 },
+    analyzeBtn: { backgroundColor: '#22d3ee', borderRadius: 14, paddingVertical: 16, alignItems: 'center', shadowColor: '#22d3ee', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 },
     analyzeBtnDisabled: { opacity: 0.7 },
     analyzeBtnText: { color: '#000', fontSize: 16, fontWeight: '700' },
     loadingRow: { flexDirection: 'row', alignItems: 'center' },
     tipCard: { backgroundColor: 'rgba(76, 175, 80, 0.04)', borderWidth: 1, borderColor: 'rgba(76, 175, 80, 0.1)', borderRadius: 14, padding: 16 },
-    tipTitle: { color: '#4CAF50', fontSize: 14, fontWeight: '700', marginBottom: 8 },
+    tipTitle: { color: '#22d3ee', fontSize: 14, fontWeight: '700', marginBottom: 8 },
     tipText: { color: '#71717a', fontSize: 13, lineHeight: 22 },
 });

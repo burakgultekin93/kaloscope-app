@@ -45,7 +45,7 @@ export default function DiaryScreen() {
                 <Text style={styles.date}>{today}</Text>
 
                 {loading ? (
-                    <ActivityIndicator color="#4CAF50" style={{ marginTop: 40 }} />
+                    <ActivityIndicator color="#22d3ee" style={{ marginTop: 40 }} />
                 ) : meals.length === 0 ? (
                     <View style={styles.emptyCard}>
                         <Text style={styles.emptyIcon}>📝</Text>
@@ -157,5 +157,5 @@ const styles = StyleSheet.create({
     },
     foodName: { color: '#fff', fontSize: 14, fontWeight: '500', marginBottom: 2 },
     foodMacros: { color: '#52525b', fontSize: 12 },
-    foodCals: { color: '#4CAF50', fontSize: 15, fontWeight: '700' },
+    foodCals: { color: '#22d3ee', fontSize: 15, fontWeight: '700' },
 });

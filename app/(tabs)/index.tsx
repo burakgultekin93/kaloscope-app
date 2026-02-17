@@ -33,9 +33,9 @@ const MacroPieChart = ({ protein, carbs, fat }: { protein: number; carbs: number
 
             <View style={pieStyles.legend}>
                 <View style={pieStyles.legendItem}>
-                    <View style={[pieStyles.legendDot, { backgroundColor: '#4CAF50' }]} />
+                    <View style={[pieStyles.legendDot, { backgroundColor: '#22d3ee' }]} />
                     <Text style={pieStyles.legendLabel}>{t('protein')}</Text>
-                    <Text style={[pieStyles.legendValue, { color: '#4CAF50' }]}>{protein.toFixed(0)}g</Text>
+                    <Text style={[pieStyles.legendValue, { color: '#22d3ee' }]}>{protein.toFixed(0)}g</Text>
                     <Text style={pieStyles.legendPct}>{pP.toFixed(0)}%</Text>
                 </View>
                 <View style={pieStyles.legendItem}>
@@ -53,7 +53,7 @@ const MacroPieChart = ({ protein, carbs, fat }: { protein: number; carbs: number
             </View>
 
             <View style={pieStyles.stackedBar}>
-                <View style={[pieStyles.barSegment, { flex: pP || 1, backgroundColor: '#4CAF50', borderTopLeftRadius: 6, borderBottomLeftRadius: 6 }]} />
+                <View style={[pieStyles.barSegment, { flex: pP || 1, backgroundColor: '#22d3ee', borderTopLeftRadius: 6, borderBottomLeftRadius: 6 }]} />
                 <View style={[pieStyles.barSegment, { flex: pC || 1, backgroundColor: '#3b82f6' }]} />
                 <View style={[pieStyles.barSegment, { flex: pF || 1, backgroundColor: '#8b5cf6', borderTopRightRadius: 6, borderBottomRightRadius: 6 }]} />
             </View>
@@ -257,13 +257,13 @@ const MotivationWidget = ({ name }: { name: string }) => {
 
 const motivationStyles = StyleSheet.create({
     container: {
-        backgroundColor: 'rgba(76, 175, 80, 0.05)',
-        borderWidth: 1, borderColor: 'rgba(76, 175, 80, 0.2)',
+        backgroundColor: 'rgba(34, 211, 238, 0.05)',
+        borderWidth: 1, borderColor: 'rgba(34, 211, 238, 0.2)',
         borderRadius: 20, padding: 20, marginBottom: 16,
     },
     header: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
     emoji: { fontSize: 20 },
-    title: { color: '#4CAF50', fontSize: 14, fontWeight: '700', textTransform: 'uppercase' },
+    title: { color: '#22d3ee', fontSize: 14, fontWeight: '700', textTransform: 'uppercase' },
     quote: { color: '#fff', fontSize: 16, fontWeight: '600', fontStyle: 'italic', lineHeight: 24, marginBottom: 12 },
     footer: { color: '#71717a', fontSize: 12, fontWeight: '500' },
 });
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
         borderRadius: 12, paddingHorizontal: 14, paddingVertical: 6, alignItems: 'flex-end',
     },
-    dateDay: { color: '#4CAF50', fontSize: 11, fontWeight: '700' },
+    dateDay: { color: '#22d3ee', fontSize: 11, fontWeight: '700' },
     dateStr: { color: '#71717a', fontSize: 11, marginTop: 2 },
     summaryCard: {
         backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
@@ -431,12 +431,12 @@ const styles = StyleSheet.create({
     summaryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     summaryTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
     calorieBadge: {
-        backgroundColor: 'rgba(76, 175, 80, 0.08)', borderWidth: 1, borderColor: 'rgba(76, 175, 80, 0.2)',
+        backgroundColor: 'rgba(34, 211, 238, 0.08)', borderWidth: 1, borderColor: 'rgba(34, 211, 238, 0.2)',
         borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4,
     },
-    calorieBadgeText: { color: '#4CAF50', fontSize: 12, fontWeight: '700' },
+    calorieBadgeText: { color: '#22d3ee', fontSize: 12, fontWeight: '700' },
     calorieBar: { width: '100%', height: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', marginBottom: 12 },
-    calorieBarFill: { height: '100%', backgroundColor: '#4CAF50', borderRadius: 4 },
+    calorieBarFill: { height: '100%', backgroundColor: '#22d3ee', borderRadius: 4 },
     summaryHint: { color: '#52525b', fontSize: 13, textAlign: 'center', marginTop: 4 },
     chartCard: {
         backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     mealItemName: { color: '#fff', fontSize: 15, fontWeight: '600', marginBottom: 4 },
     mealItemMeta: { color: '#52525b', fontSize: 12 },
     mealItemRight: { alignItems: 'flex-end' },
-    mealItemCal: { color: '#4CAF50', fontSize: 20, fontWeight: '800' },
+    mealItemCal: { color: '#22d3ee', fontSize: 20, fontWeight: '800' },
     mealItemCalUnit: { color: '#52525b', fontSize: 11 },
     separator: { height: 1, backgroundColor: 'rgba(255,255,255,0.04)', marginHorizontal: 16 },
 });

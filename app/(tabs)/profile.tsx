@@ -158,7 +158,7 @@ export default function ProfileScreen() {
         return (
             <SafeAreaView style={styles.container}>
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                    <ActivityIndicator color="#4CAF50" />
+                    <ActivityIndicator color="#22d3ee" />
                 </View>
             </SafeAreaView>
         );
@@ -197,7 +197,7 @@ export default function ProfileScreen() {
                     <Switch
                         value={motivationMode}
                         onValueChange={(v) => toggleSetting('motivation_mode', v, setMotivationMode)}
-                        trackColor={{ false: '#3f3f46', true: '#4CAF50' }}
+                        trackColor={{ false: '#3f3f46', true: '#22d3ee' }}
                         thumbColor={Platform.OS === 'ios' ? '#fff' : motivationMode ? '#fff' : '#71717a'}
                     />
                 </View>
@@ -247,7 +247,7 @@ export default function ProfileScreen() {
                     <Switch
                         value={isDiabetic}
                         onValueChange={toggleDiabeticMode}
-                        trackColor={{ false: '#3f3f46', true: '#4CAF50' }}
+                        trackColor={{ false: '#3f3f46', true: '#22d3ee' }}
                         thumbColor={Platform.OS === 'ios' ? '#fff' : isDiabetic ? '#fff' : '#71717a'}
                     />
                 </View>
@@ -423,15 +423,15 @@ const styles = StyleSheet.create({
         width: 72,
         height: 72,
         borderRadius: 36,
-        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+        backgroundColor: 'rgba(34, 211, 238, 0.1)',
         borderWidth: 2,
-        borderColor: '#4CAF50',
+        borderColor: '#22d3ee',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 16,
     },
     avatarText: {
-        color: '#4CAF50',
+        color: '#22d3ee',
         fontSize: 24,
         fontWeight: '800',
     },
@@ -447,15 +447,15 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     planBadge: {
-        backgroundColor: 'rgba(76, 175, 80, 0.08)',
+        backgroundColor: 'rgba(34, 211, 238, 0.08)',
         borderWidth: 1,
-        borderColor: 'rgba(76, 175, 80, 0.2)',
+        borderColor: 'rgba(34, 211, 238, 0.2)',
         borderRadius: 20,
         paddingHorizontal: 14,
         paddingVertical: 4,
     },
     planBadgeText: {
-        color: '#4CAF50',
+        color: '#22d3ee',
         fontSize: 11,
         fontWeight: '800',
         letterSpacing: 1,
@@ -549,8 +549,8 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
     },
     chipActive: {
-        backgroundColor: 'rgba(76, 175, 80, 0.1)',
-        borderColor: 'rgba(76, 175, 80, 0.3)',
+        backgroundColor: 'rgba(34, 211, 238, 0.1)',
+        borderColor: 'rgba(34, 211, 238, 0.3)',
     },
     chipText: {
         color: '#71717a',
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     chipTextActive: {
-        color: '#4CAF50',
+        color: '#22d3ee',
         fontWeight: '700',
     },
 
@@ -572,8 +572,8 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.03)',
     },
     langBtnActive: {
-        backgroundColor: 'rgba(76, 175, 80, 0.15)',
-        borderColor: '#4CAF50',
+        backgroundColor: 'rgba(34, 211, 238, 0.15)',
+        borderColor: '#22d3ee',
     },
     langBtnText: {
         color: '#71717a',
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     langBtnTextActive: {
-        color: '#4CAF50',
+        color: '#22d3ee',
         fontWeight: '700',
     },
 

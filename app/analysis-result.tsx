@@ -83,7 +83,7 @@ export default function AnalysisResultScreen() {
         return (
             <SafeAreaView style={styles.container}>
                 <View style={styles.loadingState}>
-                    <ActivityIndicator size="large" color="#4CAF50" />
+                    <ActivityIndicator size="large" color="#22d3ee" />
                     <Text style={styles.loadingText}>{t('loading')}</Text>
                 </View>
             </SafeAreaView>
@@ -163,12 +163,12 @@ export default function AnalysisResultScreen() {
                 <View style={styles.macroGrid}>
                     <View style={styles.macroCard}>
                         <Text style={styles.macroEmoji}>🔥</Text>
-                        <Text style={[styles.macroValue, { color: '#4CAF50' }]}>{result.total_calories}</Text>
+                        <Text style={[styles.macroValue, { color: '#22d3ee' }]}>{result.total_calories}</Text>
                         <Text style={styles.macroLabel}>{t('calories')}</Text>
                     </View>
                     <View style={styles.macroCard}>
                         <Text style={styles.macroEmoji}>🥩</Text>
-                        <Text style={[styles.macroValue, { color: '#4CAF50' }]}>{result.total_protein}g</Text>
+                        <Text style={[styles.macroValue, { color: '#22d3ee' }]}>{result.total_protein}g</Text>
                         <Text style={styles.macroLabel}>{t('protein')}</Text>
                     </View>
                     <View style={[styles.macroCard, highCarb && styles.macroCardWarning]}>
@@ -190,7 +190,7 @@ export default function AnalysisResultScreen() {
                         <Text style={styles.insightText}>{result.insight}</Text>
                         <View style={styles.healthScoreRow}>
                             <Text style={styles.healthScoreLabel}>{t('health_score')}:</Text>
-                            <Text style={[styles.healthScoreValue, { color: result.health_score > 70 ? '#4CAF50' : '#f59e0b' }]}>
+                            <Text style={[styles.healthScoreValue, { color: result.health_score > 70 ? '#22d3ee' : '#f59e0b' }]}>
                                 {result.health_score}/100
                             </Text>
                         </View>
@@ -247,17 +247,17 @@ const styles = StyleSheet.create({
     headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
     prefsContainer: { marginBottom: 20 },
     prefsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-    prefBadge: { backgroundColor: 'rgba(76, 175, 80, 0.1)', borderWidth: 1, borderColor: 'rgba(76, 175, 80, 0.2)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-    prefBadgeText: { color: '#4CAF50', fontSize: 12, fontWeight: '600' },
+    prefBadge: { backgroundColor: 'rgba(34, 211, 238, 0.1)', borderWidth: 1, borderColor: 'rgba(34, 211, 238, 0.2)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+    prefBadgeText: { color: '#22d3ee', fontSize: 12, fontWeight: '600' },
     prefsHint: { color: '#52525b', fontSize: 11, fontStyle: 'italic' },
-    diabeticCard: { backgroundColor: 'rgba(76, 175, 80, 0.05)', borderWidth: 1, borderColor: 'rgba(76, 175, 80, 0.2)', borderRadius: 16, padding: 16, marginBottom: 20 },
+    diabeticCard: { backgroundColor: 'rgba(34, 211, 238, 0.05)', borderWidth: 1, borderColor: 'rgba(34, 211, 238, 0.2)', borderRadius: 16, padding: 16, marginBottom: 20 },
     diabeticCardWarning: { backgroundColor: 'rgba(239, 68, 68, 0.05)', borderColor: 'rgba(239, 68, 68, 0.3)' },
     diabeticTitle: { color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: 4 },
     diabeticDesc: { color: '#a1a1aa', fontSize: 12, lineHeight: 18 },
-    resultCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(76, 175, 80, 0.2)', borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 16 },
+    resultCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(34, 211, 238, 0.2)', borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 16 },
     resultHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
     checkIcon: { fontSize: 20 },
-    resultTitle: { color: '#4CAF50', fontSize: 14, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
+    resultTitle: { color: '#22d3ee', fontSize: 14, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
     foodName: { color: '#fff', fontSize: 26, fontWeight: '800', textAlign: 'center', marginBottom: 12, letterSpacing: -0.5 },
     confidenceBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     confidenceDot: { width: 8, height: 8, borderRadius: 4 },
@@ -279,8 +279,8 @@ const styles = StyleSheet.create({
     foodItemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
     foodItemName: { color: '#fff', fontSize: 14, flex: 2 },
     foodItemGrams: { color: '#71717a', fontSize: 13, flex: 1, textAlign: 'center' },
-    foodItemCals: { color: '#4CAF50', fontSize: 14, flex: 1, textAlign: 'right', fontWeight: '600' },
-    saveBtn: { backgroundColor: '#4CAF50', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 12, shadowColor: '#4CAF50', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 },
+    foodItemCals: { color: '#22d3ee', fontSize: 14, flex: 1, textAlign: 'right', fontWeight: '600' },
+    saveBtn: { backgroundColor: '#22d3ee', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 12, shadowColor: '#22d3ee', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 },
     saveBtnDisabled: { opacity: 0.7 },
     saveBtnText: { color: '#000', fontSize: 16, fontWeight: '700' },
     loadingRow: { flexDirection: 'row', alignItems: 'center' },
