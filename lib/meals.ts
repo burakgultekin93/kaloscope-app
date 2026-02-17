@@ -97,3 +97,49 @@ export async function getTodayTotals(): Promise<{ calories: number; protein: num
         { calories: 0, protein: 0, carbs: 0, fat: 0, count: 0 }
     );
 }
+
+/**
+ * Calculate the current day streak (consecutive days with at least 1 meal)
+ */
+export async function getStreak(): Promise<number> {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+    if (!userId) return 0;
+
+    // Get meals from the last 90 days, grouped by date
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+    const { data, error } = await supabase
+        .from('meals')
+        .select('created_at')
+        .eq('user_id', userId)
+        .gte('created_at', ninetyDaysAgo.toISOString())
+        .order('created_at', { ascending: false });
+
+    if (error || !data || data.length === 0) return 0;
+
+    // Get unique dates (YYYY-MM-DD)
+    const uniqueDates = [...new Set(data.map(m => m.created_at.split('T')[0]))].sort().reverse();
+
+    // Count streak from today backwards
+    let streak = 0;
+    const today = new Date();
+
+    for (let i = 0; i < 90; i++) {
+        const checkDate = new Date(today);
+        checkDate.setDate(checkDate.getDate() - i);
+        const dateStr = checkDate.toISOString().split('T')[0];
+
+        if (uniqueDates.includes(dateStr)) {
+            streak++;
+        } else if (i === 0) {
+            // Today doesn't have a meal yet — that's OK, check yesterday
+            continue;
+        } else {
+            break;
+        }
+    }
+
+    return streak;
+}
