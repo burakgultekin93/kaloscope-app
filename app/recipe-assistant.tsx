@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, SafeAreaView, StyleSheet, TouchableOpacity,
-    ActivityIndicator, Image, Platform, Alert, ScrollView, TextInput,
+    ActivityIndicator, Image, Platform, ScrollView, TextInput,
     Animated, Dimensions
 } from 'react-native';
+import { showAlert } from '../lib/alert';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { suggestRecipes, Recipe } from '../lib/recipes';
@@ -56,7 +57,7 @@ export default function RecipeAssistantScreen() {
 
     const handleSuggest = async () => {
         if (!base64Data && !manualIngredients) {
-            Alert.alert(t('error'), lang === 'tr' ? 'Lütfen bir fotoğraf seçin veya malzemeleri yazın.' : 'Please select a photo or type ingredients.');
+            showAlert(t('error'), lang === 'tr' ? 'Lütfen bir fotoğraf seçin veya malzemeleri yazın.' : 'Please select a photo or type ingredients.');
             return;
         }
 
@@ -71,10 +72,10 @@ export default function RecipeAssistantScreen() {
             if (res.success) {
                 setRecipes(res.recipes);
             } else {
-                Alert.alert(t('error'), lang === 'tr' ? 'Tarif önerileri alınamadı.' : 'Could not fetch recipe suggestions.');
+                showAlert(t('error'), lang === 'tr' ? 'Tarif önerileri alınamadı.' : 'Could not fetch recipe suggestions.');
             }
         } catch (error: any) {
-            Alert.alert(t('error'), error.message);
+            showAlert(t('error'), error.message || 'Unknown error occurred');
         } finally {
             setAnalyzing(false);
         }
