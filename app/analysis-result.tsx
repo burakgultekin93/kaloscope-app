@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
     View, Text, SafeAreaView, ScrollView, StyleSheet,
-    TouchableOpacity, Platform, ActivityIndicator, Alert
+    TouchableOpacity, Platform, ActivityIndicator
 } from 'react-native';
+import { showAlert } from '../lib/alert';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { saveFoodLog } from '../lib/meals';
@@ -69,11 +70,11 @@ export default function AnalysisResultScreen() {
                 ai_details: result,
             });
 
-            Alert.alert(t('success') + ' ✅', lang === 'tr' ? 'Öğün günlüğüne kaydedildi!' : 'Meal saved to your diary!', [
+            showAlert(t('success') + ' ✅', lang === 'tr' ? 'Öğün günlüğüne kaydedildi!' : 'Meal saved to your diary!', [
                 { text: lang === 'tr' ? 'Dashboard\'a Git' : 'Go to Dashboard', onPress: () => router.replace('/(tabs)') },
             ]);
         } catch (e: any) {
-            Alert.alert(t('error'), e.message);
+            showAlert(t('error'), e.message || 'Unknown error occurred');
         } finally {
             setSaving(false);
         }

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
     View, Text, SafeAreaView, StyleSheet, TouchableOpacity,
-    ActivityIndicator, Image, Platform, Alert
+    ActivityIndicator, Image, Platform
 } from 'react-native';
+import { showAlert } from '../lib/alert';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { analyzeFood } from '../lib/openai';
@@ -33,7 +34,7 @@ export default function CameraScreen() {
 
     const handleAnalyze = async () => {
         if (!base64Data) {
-            Alert.alert(t('error'), t('select_photo'));
+            showAlert(t('error'), t('select_photo'));
             return;
         }
 
@@ -68,7 +69,7 @@ export default function CameraScreen() {
                 },
             });
         } catch (error: any) {
-            Alert.alert(t('error'), error.message);
+            showAlert(t('error'), error.message || 'Unknown error occurred');
         } finally {
             setAnalyzing(false);
         }
