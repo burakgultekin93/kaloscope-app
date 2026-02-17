@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+    View, Text, ScrollView, Platform, KeyboardAvoidingView,
+    TouchableOpacity, StyleSheet, Animated, Dimensions
+} from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { supabase } from '../../lib/supabase';
-import { NeonButton } from '../../components/ui/NeonButton';
 import { NeonInput } from '../../components/ui/NeonInput';
-import { BioluminescentHero } from '../../components/hero/BioluminescentHero';
-import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
+const isWide = width > 768;
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -13,6 +16,24 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    const formOpacity = useRef(new Animated.Value(0)).current;
+    const formTranslate = useRef(new Animated.Value(30)).current;
+    const glowPulse = useRef(new Animated.Value(0.15)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(formOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
+            Animated.timing(formTranslate, { toValue: 0, duration: 600, useNativeDriver: true }),
+        ]).start();
+
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(glowPulse, { toValue: 0.35, duration: 3000, useNativeDriver: true }),
+                Animated.timing(glowPulse, { toValue: 0.15, duration: 3000, useNativeDriver: true }),
+            ])
+        ).start();
+    }, []);
 
     const handleLogin = async () => {
         setLoading(true);
@@ -25,8 +46,6 @@ export default function LoginScreen() {
             });
 
             if (error) throw error;
-
-            // Navigate to dashboard (tabs)
             router.replace('/(tabs)');
         } catch (err: any) {
             setError(err.message);
@@ -38,37 +57,42 @@ export default function LoginScreen() {
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            className="flex-1 bg-black"
+            style={styles.container}
         >
-            <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-                {/* Background Mesh */}
-                <View className="absolute inset-0 z-0">
-                    <LinearGradient colors={['#0f172a', '#000000']} style={{ flex: 1 }} />
-                </View>
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* Ambient glow orbs */}
+                <Animated.View style={[styles.glowOrb, styles.glowOrb1, { opacity: glowPulse }]} />
+                <Animated.View style={[styles.glowOrb, styles.glowOrb2, { opacity: glowPulse }]} />
 
-                <View className="flex-1 justify-center px-6 py-12 z-10">
-                    <View className="mb-10 items-center">
-                        <Text className="text-4xl font-extrabold text-transparent bg-clip-text text-white">
-                            Welcome Back
-                        </Text>
-                        <Text className="text-gray-400 mt-2 text-center text-lg">
-                            Enter the <Text className="text-cyan-400 font-bold">Cockpit</Text>
+                {/* Back to home */}
+                <TouchableOpacity style={styles.backBtn} onPress={() => router.push('/')}>
+                    <Text style={styles.backBtnText}>← Back</Text>
+                </TouchableOpacity>
+
+                <Animated.View style={[styles.formWrapper, { opacity: formOpacity, transform: [{ translateY: formTranslate }] }]}>
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <Text style={styles.logoIcon}>◉</Text>
+                        <Text style={styles.title}>Welcome Back</Text>
+                        <Text style={styles.subtitle}>
+                            Sign in to your <Text style={styles.accent}>KaloScope</Text> account
                         </Text>
                     </View>
 
-                    <View className="bg-zinc-900/50 border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
-                        {/* Glow effect */}
-                        <View className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 blur-3xl rounded-full" />
-
+                    {/* Form Card */}
+                    <View style={styles.formCard}>
                         {error ? (
-                            <View className="bg-red-500/10 border border-red-500/50 p-4 rounded-xl mb-6">
-                                <Text className="text-red-400 text-center">{error}</Text>
+                            <View style={styles.errorBox}>
+                                <Text style={styles.errorText}>{error}</Text>
                             </View>
                         ) : null}
 
                         <NeonInput
                             label="Email"
-                            placeholder="pilot@calorie.ai"
+                            placeholder="you@example.com"
                             value={email}
                             onChangeText={setEmail}
                             autoCapitalize="none"
@@ -83,27 +107,198 @@ export default function LoginScreen() {
                             secureTextEntry
                         />
 
-                        <View className="mt-6 mb-4">
-                            <NeonButton onPress={handleLogin} loading={loading} variant="primary">
-                                INITIATE LAUNCH
-                            </NeonButton>
+                        <TouchableOpacity
+                            style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
+                            onPress={handleLogin}
+                            disabled={loading}
+                        >
+                            <Text style={styles.submitBtnText}>
+                                {loading ? 'Signing In...' : 'Sign In →'}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <View style={styles.dividerRow}>
+                            <View style={styles.dividerLine} />
+                            <Text style={styles.dividerText}>or</Text>
+                            <View style={styles.dividerLine} />
                         </View>
 
-                        <View className="flex-row justify-center mt-4">
-                            <Text className="text-gray-500">New Recruit? </Text>
-                            <Link href="/register" className="text-cyan-400 font-bold">
-                                Join the Fleet
-                            </Link>
-                        </View>
-
-                        <View className="mt-6 items-center">
-                            <Link href="/" className="text-gray-600 text-xs uppercase tracking-widest">
-                                Abort Mission (Back to Home)
+                        <View style={styles.switchRow}>
+                            <Text style={styles.switchText}>Don't have an account? </Text>
+                            <Link href="/register" asChild>
+                                <TouchableOpacity>
+                                    <Text style={styles.switchLink}>Sign Up Free</Text>
+                                </TouchableOpacity>
                             </Link>
                         </View>
                     </View>
-                </View>
+
+                    {/* Trust info */}
+                    <View style={styles.trustRow}>
+                        <Text style={styles.trustItem}>🔒 Secure login</Text>
+                        <Text style={styles.trustDot}>•</Text>
+                        <Text style={styles.trustItem}>Your data is encrypted</Text>
+                    </View>
+                </Animated.View>
             </ScrollView>
         </KeyboardAvoidingView>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#09090b',
+    },
+    scrollContent: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        paddingHorizontal: 24,
+        paddingVertical: 40,
+    },
+    glowOrb: {
+        position: 'absolute',
+        borderRadius: 999,
+    },
+    glowOrb1: {
+        width: 300, height: 300,
+        backgroundColor: '#22d3ee',
+        top: -60, left: -80,
+    },
+    glowOrb2: {
+        width: 250, height: 250,
+        backgroundColor: '#8b5cf6',
+        bottom: -40, right: -60,
+    },
+    backBtn: {
+        position: 'absolute',
+        top: Platform.OS === 'web' ? 24 : 50,
+        left: 24,
+        zIndex: 20,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+    },
+    backBtnText: {
+        color: '#71717a',
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    formWrapper: {
+        maxWidth: 420,
+        width: '100%',
+        alignSelf: 'center',
+        zIndex: 10,
+    },
+    header: {
+        alignItems: 'center',
+        marginBottom: 32,
+    },
+    logoIcon: {
+        color: '#22d3ee',
+        fontSize: 36,
+        fontWeight: '700',
+        marginBottom: 16,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: '800',
+        color: '#fff',
+        textAlign: 'center',
+        letterSpacing: -0.5,
+        marginBottom: 8,
+    },
+    subtitle: {
+        color: '#71717a',
+        fontSize: 15,
+        textAlign: 'center',
+    },
+    accent: {
+        color: '#22d3ee',
+        fontWeight: '600',
+    },
+    formCard: {
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        borderRadius: 20,
+        padding: 28,
+    },
+    errorBox: {
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(239, 68, 68, 0.3)',
+        padding: 14,
+        borderRadius: 12,
+        marginBottom: 20,
+    },
+    errorText: {
+        color: '#f87171',
+        textAlign: 'center',
+        fontSize: 14,
+    },
+    submitBtn: {
+        backgroundColor: '#22d3ee',
+        paddingVertical: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+        marginTop: 8,
+        shadowColor: '#22d3ee',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    submitBtnDisabled: {
+        opacity: 0.6,
+    },
+    submitBtnText: {
+        color: '#000',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    dividerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 24,
+        gap: 12,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+    },
+    dividerText: {
+        color: '#52525b',
+        fontSize: 13,
+    },
+    switchRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    switchText: {
+        color: '#71717a',
+        fontSize: 14,
+    },
+    switchLink: {
+        color: '#22d3ee',
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    trustRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 24,
+        gap: 8,
+        flexWrap: 'wrap',
+    },
+    trustItem: {
+        color: '#52525b',
+        fontSize: 12,
+    },
+    trustDot: {
+        color: '#3f3f46',
+        fontSize: 12,
+    },
+});
