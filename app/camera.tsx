@@ -4,7 +4,7 @@ import { Button, StyleSheet, Text, TouchableOpacity, View, Image, ActivityIndica
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 
