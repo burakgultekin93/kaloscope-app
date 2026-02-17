@@ -1,92 +1,47 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
+import {
+    View, Text, SafeAreaView, ScrollView, StyleSheet,
+    TouchableOpacity, Platform, ActivityIndicator, Alert
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { NeonButton } from '../components/ui/NeonButton';
-import { CheckCircle, AlertCircle, Save } from 'lucide-react-native';
-import { supabase } from '../lib/supabase';
-
-// Define types matching the Edge Function response
-interface DetectedFood {
-    name_tr: string;
-    name_en: string;
-    estimated_grams: number;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    fiber: number;
-    confidence: number;
-}
-
-interface AnalysisResponse {
-    success: boolean;
-    foods: DetectedFood[];
-    total_calories: number;
-    total_protein: number;
-    total_carbs: number;
-    total_fat: number;
-}
+import { saveMeal } from '../lib/meals';
+import { NutritionResult } from '../lib/openai';
 
 export default function AnalysisResultScreen() {
     const params = useLocalSearchParams();
     const router = useRouter();
-    const [result, setResult] = useState<AnalysisResponse | null>(null);
-    const [imageUri, setImageUri] = useState<string>('');
+    const [result, setResult] = useState<NutritionResult | null>(null);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        if (params.analysisResult) {
+        if (params.resultJson) {
             try {
-                const parsed = JSON.parse(params.analysisResult as string);
-                setResult(parsed);
+                setResult(JSON.parse(params.resultJson as string));
             } catch (e) {
-                console.error("Failed to parse result", e);
+                console.error('Failed to parse result', e);
             }
-        }
-        if (params.imageUri) {
-            setImageUri(params.imageUri as string);
         }
     }, [params]);
 
-    const handleSaveDecorated = async () => {
+    const handleSave = async () => {
+        if (!result) return;
         setSaving(true);
         try {
-            // 1. Get User
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("No user found");
+            await saveMeal({
+                food_name: result.food_name,
+                calories: result.calories,
+                protein: result.protein,
+                carbs: result.carbs,
+                fat: result.fat,
+                meal_type: 'snack',
+                ai_response: result,
+            });
 
-            // 2. Prepare Log Entry (Summary)
-            const totalCalories = result?.total_calories || 0;
-
-            // 3. Insert into food_logs (One entry per food item detected)
-            if (result?.foods) {
-                const logs = result.foods.map(food => ({
-                    user_id: user.id,
-                    food_name: food.name_tr,
-                    calories: food.calories,
-                    protein: food.protein,
-                    carbs: food.carbs,
-                    fat: food.fat,
-                    details: food, // Store full JSON details
-                    image_url: imageUri, // Local URI for now, would be storage URL in prod
-                    log_date: new Date().toISOString().split('T')[0],
-                    meal_type: 'lunch' // Default or passed from params
-                }));
-
-                const { error } = await supabase.from('food_logs').insert(logs);
-                if (error) throw error;
-            }
-
-            // 4. Update Daily Summary (This interacts with the DB Trigger usually, or manual)
-            // We assume DB triggers handle daily_summaries aggregation from food_logs
-
-            Alert.alert("Success", "Meal logged successfully!", [
-                { text: "OK", onPress: () => router.push('/(tabs)/diary') }
+            Alert.alert('Success ✅', 'Meal saved to your diary!', [
+                { text: 'Go to Dashboard', onPress: () => router.replace('/(tabs)') },
             ]);
-
         } catch (e: any) {
-            Alert.alert("Error", "Failed to save meal: " + e.message);
+            Alert.alert('Save Failed', e.message);
         } finally {
             setSaving(false);
         }
@@ -94,88 +49,290 @@ export default function AnalysisResultScreen() {
 
     if (!result) {
         return (
-            <View className="flex-1 bg-black justify-center items-center">
-                <ActivityIndicator size="large" color="#40D3F4" />
-                <Text className="text-white mt-4">Loading Analysis...</Text>
-            </View>
+            <SafeAreaView style={styles.container}>
+                <View style={styles.loadingState}>
+                    <ActivityIndicator size="large" color="#22d3ee" />
+                    <Text style={styles.loadingText}>Loading analysis...</Text>
+                </View>
+            </SafeAreaView>
         );
     }
 
+    const confidenceColor = result.confidence === 'high' ? '#22c55e' : result.confidence === 'medium' ? '#f59e0b' : '#ef4444';
+
     return (
-        <SafeAreaView className="flex-1 bg-black">
-            <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-                {/* Header Image */}
-                <View className="h-64 w-full relative">
-                    <Image source={{ uri: imageUri }} className="w-full h-full" resizeMode="cover" />
-                    <LinearGradient
-                        colors={['transparent', 'rgba(0,0,0,0.9)']}
-                        style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 100 }}
-                    />
-                    <TouchableOpacity
-                        onPress={() => router.back()}
-                        className="absolute top-12 left-6 bg-black/50 p-2 rounded-full border border-white/20"
-                    >
-                        <Text className="text-white font-bold">← Back</Text>
+        <SafeAreaView style={styles.container}>
+            <ScrollView
+                style={styles.scroll}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                        <Text style={styles.backBtnText}>← Back</Text>
                     </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Analysis Result</Text>
+                    <View style={{ width: 60 }} />
                 </View>
 
-                <View className="p-6 -mt-6">
-                    {/* Total Summary Card */}
-                    <View className="bg-zinc-900 border border-cyan-500/30 rounded-3xl p-6 shadow-lg shadow-cyan-500/10 mb-8">
-                        <View className="flex-row justify-between items-center mb-4">
-                            <Text className="text-white text-2xl font-bold">Analysis Complete</Text>
-                            <CheckCircle size={24} color="#40D3F4" />
-                        </View>
-
-                        <View className="flex-row justify-between">
-                            <View className="items-center">
-                                <Text className="text-3xl font-bold text-white">{result.total_calories}</Text>
-                                <Text className="text-gray-400 text-xs uppercase">Calories</Text>
-                            </View>
-                            <View className="w-[1px] bg-white/10" />
-                            <View className="items-center">
-                                <Text className="text-xl font-bold text-cyan-400">{result.total_protein}g</Text>
-                                <Text className="text-gray-400 text-xs uppercase">Protein</Text>
-                            </View>
-                            <View className="items-center">
-                                <Text className="text-xl font-bold text-blue-400">{result.total_carbs}g</Text>
-                                <Text className="text-gray-400 text-xs uppercase">Carbs</Text>
-                            </View>
-                            <View className="items-center">
-                                <Text className="text-xl font-bold text-purple-400">{result.total_fat}g</Text>
-                                <Text className="text-gray-400 text-xs uppercase">Fat</Text>
-                            </View>
-                        </View>
+                {/* Result Card */}
+                <View style={styles.resultCard}>
+                    <View style={styles.resultHeader}>
+                        <Text style={styles.checkIcon}>✅</Text>
+                        <Text style={styles.resultTitle}>Analysis Complete</Text>
                     </View>
 
-                    {/* Detected Items List */}
-                    <Text className="text-gray-400 text-sm uppercase mb-4 tracking-wider">Detected Items</Text>
+                    <Text style={styles.foodName}>{result.food_name}</Text>
 
-                    <View className="space-y-4">
-                        {result.foods.map((food, index) => (
-                            <View key={index} className="bg-white/5 border border-white/5 rounded-2xl p-4 flex-row justify-between items-center">
-                                <View className="flex-1">
-                                    <Text className="text-white font-semibold text-lg">{food.name_tr}</Text>
-                                    <Text className="text-gray-500 text-xs">{food.estimated_grams}g • {Math.round(food.confidence * 100)}% Match</Text>
-                                </View>
-                                <View className="items-end">
-                                    <Text className="text-white font-bold">{food.calories} kcal</Text>
-                                </View>
-                            </View>
-                        ))}
+                    <View style={styles.confidenceBadge}>
+                        <View style={[styles.confidenceDot, { backgroundColor: confidenceColor }]} />
+                        <Text style={[styles.confidenceText, { color: confidenceColor }]}>
+                            {result.confidence} confidence
+                        </Text>
                     </View>
                 </View>
+
+                {/* Macro Cards */}
+                <View style={styles.macroGrid}>
+                    <View style={styles.macroCard}>
+                        <Text style={styles.macroEmoji}>🔥</Text>
+                        <Text style={[styles.macroValue, { color: '#22d3ee' }]}>{result.calories}</Text>
+                        <Text style={styles.macroLabel}>Calories</Text>
+                    </View>
+                    <View style={styles.macroCard}>
+                        <Text style={styles.macroEmoji}>🥩</Text>
+                        <Text style={[styles.macroValue, { color: '#22d3ee' }]}>{result.protein}g</Text>
+                        <Text style={styles.macroLabel}>Protein</Text>
+                    </View>
+                    <View style={styles.macroCard}>
+                        <Text style={styles.macroEmoji}>🍞</Text>
+                        <Text style={[styles.macroValue, { color: '#3b82f6' }]}>{result.carbs}g</Text>
+                        <Text style={styles.macroLabel}>Carbs</Text>
+                    </View>
+                    <View style={styles.macroCard}>
+                        <Text style={styles.macroEmoji}>🧈</Text>
+                        <Text style={[styles.macroValue, { color: '#8b5cf6' }]}>{result.fat}g</Text>
+                        <Text style={styles.macroLabel}>Fat</Text>
+                    </View>
+                </View>
+
+                {/* Details */}
+                {result.details ? (
+                    <View style={styles.detailsCard}>
+                        <Text style={styles.detailsTitle}>🤖 AI Notes</Text>
+                        <Text style={styles.detailsText}>{result.details}</Text>
+                    </View>
+                ) : null}
+
+                {/* Save Button */}
+                <TouchableOpacity
+                    style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+                    onPress={handleSave}
+                    disabled={saving}
+                >
+                    {saving ? (
+                        <View style={styles.loadingRow}>
+                            <ActivityIndicator size="small" color="#000" />
+                            <Text style={styles.saveBtnText}> Saving...</Text>
+                        </View>
+                    ) : (
+                        <Text style={styles.saveBtnText}>💾 Save to Diary</Text>
+                    )}
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.discardBtn} onPress={() => router.back()}>
+                    <Text style={styles.discardBtnText}>Discard & Scan Again</Text>
+                </TouchableOpacity>
+
+                <View style={{ height: 32 }} />
             </ScrollView>
-
-            {/* Floating Save Button */}
-            <View className="absolute bottom-10 left-6 right-6">
-                <NeonButton onPress={handleSaveDecorated} loading={saving} variant="primary">
-                    <View className="flex-row items-center gap-2">
-                        <Save size={20} color="black" />
-                        <Text className="text-black font-bold">LOG MEAL</Text>
-                    </View>
-                </NeonButton>
-            </View>
         </SafeAreaView>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#09090b',
+    },
+    scroll: { flex: 1 },
+    scrollContent: {
+        paddingHorizontal: 20,
+        paddingTop: Platform.OS === 'web' ? 20 : 8,
+        maxWidth: 500,
+        width: '100%',
+        alignSelf: 'center',
+    },
+    loadingState: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        color: '#71717a',
+        marginTop: 12,
+        fontSize: 14,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 24,
+    },
+    backBtn: {
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+    },
+    backBtnText: {
+        color: '#71717a',
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    headerTitle: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: '700',
+    },
+
+    // Result Card
+    resultCard: {
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderWidth: 1,
+        borderColor: 'rgba(34, 211, 238, 0.2)',
+        borderRadius: 20,
+        padding: 24,
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    resultHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 12,
+    },
+    checkIcon: {
+        fontSize: 20,
+    },
+    resultTitle: {
+        color: '#22d3ee',
+        fontSize: 14,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    foodName: {
+        color: '#fff',
+        fontSize: 26,
+        fontWeight: '800',
+        textAlign: 'center',
+        marginBottom: 12,
+        letterSpacing: -0.5,
+    },
+    confidenceBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    confidenceDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+    },
+    confidenceText: {
+        fontSize: 13,
+        fontWeight: '600',
+        textTransform: 'capitalize',
+    },
+
+    // Macro Grid
+    macroGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+        marginBottom: 20,
+    },
+    macroCard: {
+        flex: 1,
+        minWidth: '45%',
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
+        borderRadius: 16,
+        padding: 20,
+        alignItems: 'center',
+    },
+    macroEmoji: {
+        fontSize: 24,
+        marginBottom: 8,
+    },
+    macroValue: {
+        fontSize: 28,
+        fontWeight: '800',
+    },
+    macroLabel: {
+        color: '#52525b',
+        fontSize: 12,
+        marginTop: 4,
+        fontWeight: '500',
+    },
+
+    // Details
+    detailsCard: {
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 14,
+        padding: 16,
+        marginBottom: 24,
+    },
+    detailsTitle: {
+        color: '#a1a1aa',
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 8,
+    },
+    detailsText: {
+        color: '#71717a',
+        fontSize: 13,
+        lineHeight: 20,
+    },
+
+    // Save Button
+    saveBtn: {
+        backgroundColor: '#22d3ee',
+        borderRadius: 14,
+        paddingVertical: 16,
+        alignItems: 'center',
+        marginBottom: 12,
+        shadowColor: '#22d3ee',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    saveBtnDisabled: {
+        opacity: 0.7,
+    },
+    saveBtnText: {
+        color: '#000',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    loadingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    discardBtn: {
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        borderRadius: 14,
+        paddingVertical: 14,
+        alignItems: 'center',
+    },
+    discardBtnText: {
+        color: '#52525b',
+        fontSize: 14,
+        fontWeight: '500',
+    },
+});
