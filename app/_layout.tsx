@@ -1,21 +1,12 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
-import 'react-native-reanimated';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { View, ActivityIndicator } from 'react-native';
-
-import { useColorScheme } from 'react-native';
-import '../global.css'; // NativeWind CSS
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+import { View, ActivityIndicator, useColorScheme, Platform, StyleSheet } from 'react-native';
 
 export default function RootLayout() {
     const colorScheme = useColorScheme();
-    const loaded = true; // No custom fonts needed
 
     const [session, setSession] = useState<Session | null>(null);
     const [initialized, setInitialized] = useState(false);
@@ -26,6 +17,9 @@ export default function RootLayout() {
         // Check initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
+            setInitialized(true);
+        }).catch(() => {
+            // If Supabase fails (e.g., missing env vars), still show the app
             setInitialized(true);
         });
 
@@ -40,30 +34,21 @@ export default function RootLayout() {
     }, []);
 
     useEffect(() => {
-        if (loaded && initialized) {
-            SplashScreen.hideAsync();
-        }
-    }, [loaded, initialized]);
-
-    useEffect(() => {
         if (!initialized) return;
 
         const inAuthGroup = segments[0] === '(auth)';
         const inTabsGroup = segments[0] === '(tabs)';
-        const isLanding = segments.length === 0; // Root index
 
         if (session && !inTabsGroup) {
-            // User is logged in, redirect to tabs (dashboard)
             router.replace('/(tabs)');
         } else if (!session && inTabsGroup) {
-            // User is not logged in but trying to access tabs
             router.replace('/');
         }
     }, [session, initialized, segments]);
 
-    if (!loaded || !initialized) {
+    if (!initialized) {
         return (
-            <View className="flex-1 bg-black items-center justify-center">
+            <View style={styles.loading}>
                 <ActivityIndicator size="large" color="#22d3ee" />
             </View>
         );
@@ -80,3 +65,12 @@ export default function RootLayout() {
         </ThemeProvider>
     );
 }
+
+const styles = StyleSheet.create({
+    loading: {
+        flex: 1,
+        backgroundColor: '#000',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+});
