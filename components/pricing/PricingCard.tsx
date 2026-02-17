@@ -1,51 +1,166 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { cn } from '../../lib/utils';
-import { Check } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
 
 export function PricingCard() {
+    const features = [
+        'Unlimited AI Food Scans',
+        'Detailed Macro Breakdown',
+        'Personalized Diet Plans',
+        'Ad-free Experience',
+    ];
+
     return (
-        <View className="p-4 bg-black">
-            <View className="bg-zinc-900/50 border border-white/10 rounded-3xl p-6 relative overflow-hidden">
-                {/* Glow Header */}
-                <View className="absolute top-0 left-0 right-0 h-32 bg-cyan-500/10 blur-3xl opacity-50" />
-
-                <View className="mb-6">
-                    <View className="bg-cyan-500/20 self-start px-3 py-1 rounded-full border border-cyan-500/30 mb-4">
-                        <Text className="text-cyan-400 text-xs font-bold uppercase tracking-wider">Most Popular</Text>
+        <View style={styles.container}>
+            <View style={styles.card}>
+                <View style={styles.header}>
+                    <View style={styles.badge}>
+                        <Text style={styles.badgeText}>Most Popular</Text>
                     </View>
-                    <Text className="text-3xl font-bold text-white mb-2">Yearly Pro</Text>
-                    <Text className="text-gray-400">Full access to AI analysis and advanced tracking.</Text>
+                    <Text style={styles.planName}>Yearly Pro</Text>
+                    <Text style={styles.planDesc}>Full access to AI analysis and advanced tracking.</Text>
                 </View>
 
-                <View className="flex-row items-end gap-1 mb-6">
-                    <Text className="text-4xl font-extrabold text-white">₺899</Text>
-                    <Text className="text-gray-500 text-lg mb-1 line-through">₺1800</Text>
-                    <Text className="text-gray-400 text-base mb-1">/year</Text>
+                <View style={styles.priceRow}>
+                    <Text style={styles.price}>₺899</Text>
+                    <Text style={styles.oldPrice}>₺1800</Text>
+                    <Text style={styles.period}>/year</Text>
                 </View>
 
-                <View className="space-y-4 mb-8">
-                    {['Unlimited AI Food Scans', 'Detailed Macro Breakdown', 'Personalized Diet Plans', 'Ad-free Experience'].map((feat, i) => (
-                        <View key={i} className="flex-row items-center gap-3">
-                            <View className="bg-cyan-500/20 p-1 rounded-full">
-                                <Check size={14} color="#22d3ee" />
+                <View style={styles.featuresList}>
+                    {features.map((feat, i) => (
+                        <View key={i} style={styles.featureRow}>
+                            <View style={styles.checkCircle}>
+                                <Text style={styles.checkMark}>✓</Text>
                             </View>
-                            <Text className="text-gray-300 text-sm">{feat}</Text>
+                            <Text style={styles.featureText}>{feat}</Text>
                         </View>
                     ))}
                 </View>
 
                 <Link href="/register" asChild>
-                    <TouchableOpacity className="bg-cyan-500 w-full py-4 rounded-xl items-center shadow-lg shadow-cyan-500/20">
-                        <Text className="text-black font-bold text-base">Start 7-Day Free Trial</Text>
+                    <TouchableOpacity style={styles.cta}>
+                        <Text style={styles.ctaText}>Start 7-Day Free Trial</Text>
                     </TouchableOpacity>
                 </Link>
 
-                <Text className="text-gray-600 text-xs text-center mt-4">
-                    Cancel anytime. No questions asked.
-                </Text>
+                <Text style={styles.disclaimer}>Cancel anytime. No questions asked.</Text>
             </View>
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        padding: 16,
+    },
+    card: {
+        backgroundColor: 'rgba(24, 24, 27, 0.5)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 24,
+        padding: 24,
+        overflow: 'hidden',
+    },
+    header: {
+        marginBottom: 24,
+    },
+    badge: {
+        backgroundColor: 'rgba(34, 211, 238, 0.2)',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(34, 211, 238, 0.3)',
+        marginBottom: 16,
+    },
+    badgeText: {
+        color: '#22d3ee',
+        fontSize: 12,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    planName: {
+        fontSize: 28,
+        fontWeight: '700',
+        color: '#fff',
+        marginBottom: 8,
+    },
+    planDesc: {
+        color: '#a1a1aa',
+        fontSize: 14,
+    },
+    priceRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        gap: 4,
+        marginBottom: 24,
+    },
+    price: {
+        fontSize: 36,
+        fontWeight: '800',
+        color: '#fff',
+    },
+    oldPrice: {
+        color: '#71717a',
+        fontSize: 18,
+        textDecorationLine: 'line-through',
+        marginBottom: 4,
+    },
+    period: {
+        color: '#a1a1aa',
+        fontSize: 16,
+        marginBottom: 4,
+    },
+    featuresList: {
+        marginBottom: 24,
+        gap: 16,
+    },
+    featureRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    checkCircle: {
+        backgroundColor: 'rgba(34, 211, 238, 0.2)',
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    checkMark: {
+        color: '#22d3ee',
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    featureText: {
+        color: '#d4d4d8',
+        fontSize: 14,
+    },
+    cta: {
+        backgroundColor: '#22d3ee',
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+        shadowColor: '#22d3ee',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.2,
+        shadowRadius: 15,
+        elevation: 8,
+    },
+    ctaText: {
+        color: '#000',
+        fontWeight: '700',
+        fontSize: 16,
+    },
+    disclaimer: {
+        color: '#52525b',
+        fontSize: 12,
+        textAlign: 'center',
+        marginTop: 16,
+    },
+});

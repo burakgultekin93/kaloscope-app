@@ -1,18 +1,16 @@
 import React from 'react';
-import { View, Text } from 'react-native';
-import { cn } from '../../lib/utils';
-import { TrendingUp, CheckCircle, Video, Globe } from 'lucide-react-native';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
 
 interface BentoItem {
     title: string;
     description: string;
-    icon: React.ReactNode;
+    icon: string;
     status?: string;
     tags?: string[];
     meta?: string;
-    cta?: string;
     colSpan?: number;
-    hasPersistentHover?: boolean;
 }
 
 const itemsSample: BentoItem[] = [
@@ -20,7 +18,7 @@ const itemsSample: BentoItem[] = [
         title: "AI Analysis",
         meta: "v2.0",
         description: "Instant calorie & macro analysis from photos",
-        icon: <TrendingUp size={20} color="#3b82f6" />, // Blue-500
+        icon: "📊",
         status: "Live",
         tags: ["Vision", "AI"],
         colSpan: 2,
@@ -29,7 +27,7 @@ const itemsSample: BentoItem[] = [
         title: "Tracker",
         meta: "Daily",
         description: "Log meals & water seamlessly",
-        icon: <CheckCircle size={20} color="#10b981" />, // Emerald-500
+        icon: "✅",
         status: "Updated",
         tags: ["Logs"],
     },
@@ -37,7 +35,7 @@ const itemsSample: BentoItem[] = [
         title: "History",
         meta: "Cloud",
         description: "Access your nutrition history anywhere",
-        icon: <Video size={20} color="#a855f7" />, // Purple-500
+        icon: "☁️",
         tags: ["Storage"],
         colSpan: 2,
     },
@@ -45,42 +43,39 @@ const itemsSample: BentoItem[] = [
 
 export function BentoGrid() {
     return (
-        <View className="flex-1 p-4 bg-black">
-            <View className="flex-row flex-wrap gap-3">
+        <View style={styles.container}>
+            <View style={styles.grid}>
                 {itemsSample.map((item, index) => (
                     <View
                         key={index}
-                        className={cn(
-                            "bg-zinc-900 border border-white/10 rounded-2xl p-4 overflow-hidden",
-                            item.colSpan === 2 ? "w-full" : "flex-1 min-w-[45%]"
-                        )}
+                        style={[
+                            styles.card,
+                            item.colSpan === 2 ? styles.cardFull : styles.cardHalf,
+                        ]}
                     >
-                        {/* Glow Effect Background */}
-                        <View className="absolute inset-0 bg-transparent" />
-
-                        <View className="flex-row justify-between items-start mb-3">
-                            <View className="bg-white/10 p-2 rounded-lg">
-                                {item.icon}
+                        <View style={styles.cardHeader}>
+                            <View style={styles.iconContainer}>
+                                <Text style={styles.icon}>{item.icon}</Text>
                             </View>
                             {item.status && (
-                                <View className="bg-white/10 px-2 py-1 rounded-md">
-                                    <Text className="text-gray-300 text-xs font-medium">{item.status}</Text>
+                                <View style={styles.statusBadge}>
+                                    <Text style={styles.statusText}>{item.status}</Text>
                                 </View>
                             )}
                         </View>
 
-                        <View className="space-y-1 mb-3">
-                            <View className="flex-row items-center gap-2">
-                                <Text className="text-white font-semibold text-base">{item.title}</Text>
-                                {item.meta && <Text className="text-gray-500 text-xs">{item.meta}</Text>}
+                        <View style={styles.cardBody}>
+                            <View style={styles.titleRow}>
+                                <Text style={styles.title}>{item.title}</Text>
+                                {item.meta && <Text style={styles.meta}>{item.meta}</Text>}
                             </View>
-                            <Text className="text-gray-400 text-sm leading-tight">{item.description}</Text>
+                            <Text style={styles.description}>{item.description}</Text>
                         </View>
 
-                        <View className="flex-row flex-wrap gap-2 mt-auto">
+                        <View style={styles.tagsRow}>
                             {item.tags?.map((tag, i) => (
-                                <View key={i} className="bg-white/5 px-2 py-1 rounded-md">
-                                    <Text className="text-gray-400 text-[10px] uppercase">#{tag}</Text>
+                                <View key={i} style={styles.tag}>
+                                    <Text style={styles.tagText}>#{tag}</Text>
                                 </View>
                             ))}
                         </View>
@@ -90,3 +85,94 @@ export function BentoGrid() {
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        padding: 16,
+    },
+    grid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+    },
+    card: {
+        backgroundColor: '#18181b',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 16,
+        padding: 16,
+        overflow: 'hidden',
+    },
+    cardFull: {
+        width: '100%',
+    },
+    cardHalf: {
+        flex: 1,
+        minWidth: width > 600 ? '45%' : '100%',
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 12,
+    },
+    iconContainer: {
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        padding: 8,
+        borderRadius: 8,
+    },
+    icon: {
+        fontSize: 20,
+    },
+    statusBadge: {
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    statusText: {
+        color: '#d4d4d8',
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    cardBody: {
+        marginBottom: 12,
+    },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 4,
+    },
+    title: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 16,
+    },
+    meta: {
+        color: '#71717a',
+        fontSize: 12,
+    },
+    description: {
+        color: '#a1a1aa',
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    tagsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    tag: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    tagText: {
+        color: '#a1a1aa',
+        fontSize: 10,
+        textTransform: 'uppercase',
+    },
+});

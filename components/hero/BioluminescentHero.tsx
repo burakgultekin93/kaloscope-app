@@ -1,107 +1,117 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { Link } from 'expo-router';
-import Animated, {
-    useSharedValue,
-    useAnimatedStyle,
-    withRepeat,
-    withTiming,
-    withSequence,
-    Easing
-} from 'react-native-reanimated';
-import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
-import { cn } from '../../lib/utils';
-import { LinearGradient } from 'expo-linear-gradient';
 
-// --- Reusable Grid Item Component ---
-// In RN, we simulate the "mouse move" effect with a continuous ambient pulse
-// since precise mouse tracking isn't applicable/performant in the same way on touch
-export const BioluminescentGridItem = ({ className, children, delay = 0 }: { className?: string, children: React.ReactNode, delay?: number }) => {
-    const opacity = useSharedValue(0.3);
+export const BioluminescentHero = ({ style }: { style?: any, className?: string }) => {
+    const pulseAnim = useRef(new Animated.Value(0.3)).current;
 
     useEffect(() => {
-        opacity.value = withRepeat(
-            withSequence(
-                withTiming(0.8, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-                withTiming(0.3, { duration: 2000, easing: Easing.inOut(Easing.ease) })
-            ),
-            -1,
-            true
-        );
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, { toValue: 0.7, duration: 2000, useNativeDriver: true }),
+                Animated.timing(pulseAnim, { toValue: 0.3, duration: 2000, useNativeDriver: true }),
+            ])
+        ).start();
     }, []);
 
-    const animatedStyle = useAnimatedStyle(() => ({
-        opacity: opacity.value,
-    }));
-
     return (
-        <View className={cn("relative overflow-hidden bg-black/80 rounded-xl border border-white/10 p-1", className)}>
-            <Animated.View
-                style={[
-                    {
-                        position: 'absolute',
-                        top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundColor: '#40D3F4', // Cyan pulse
-                        zIndex: -1,
-                    },
-                    animatedStyle
-                ]}
-            />
-            <View className="bg-black rounded-lg w-full h-full z-10 p-4">
-                {children}
-            </View>
-        </View>
-    );
-};
+        <View style={[styles.container, style]}>
+            {/* Ambient glow */}
+            <Animated.View style={[styles.glow, { opacity: pulseAnim }]} />
 
-// --- Main Grid Container Component ---
-export const BioluminescentHero = ({ className }: { className?: string }) => {
-    return (
-        <View className={cn("flex-1 bg-black items-center justify-center p-4", className)}>
-            <View className="absolute inset-0">
-                <Svg height="100%" width="100%" style={{ position: 'absolute' }}>
-                    <Defs>
-                        <RadialGradient
-                            id="grad"
-                            cx="50%"
-                            cy="20%"
-                            rx="60%"
-                            ry="40%"
-                            fx="50%"
-                            fy="20%"
-                            gradientUnits="userSpaceOnUse"
-                        >
-                            <Stop offset="0" stopColor="#40D3F4" stopOpacity="0.15" />
-                            <Stop offset="1" stopColor="black" stopOpacity="1" />
-                        </RadialGradient>
-                    </Defs>
-                    <Rect x="0" y="0" width="100%" height="100%" fill="url(#grad)" />
-                </Svg>
-            </View>
-
-            <View className="items-center space-y-4 pt-10">
-                <View className="bg-white/5 border border-white/10 rounded-full px-4 py-2 mb-4">
-                    <Text className="text-cyan-400 font-semibold text-xs tracking-wider uppercase">
-                        AI-Powered Nutrition
-                    </Text>
+            <View style={styles.content}>
+                <View style={styles.badge}>
+                    <Text style={styles.badgeText}>AI-Powered Nutrition</Text>
                 </View>
 
-                <Text className="text-5xl font-bold text-white text-center leading-tight">
-                    Shape Your <Text className="text-cyan-400">Dream Body</Text> using AI
+                <Text style={styles.title}>
+                    Shape Your <Text style={styles.titleAccent}>Dream Body</Text> using AI
                 </Text>
 
-                <Text className="text-gray-400 text-center max-w-sm mt-4 text-base leading-6">
+                <Text style={styles.subtitle}>
                     Analyze meals instantly with a single photo. Track calories and macros with precision.
                 </Text>
 
-                <View className="flex-row mt-8 space-x-4">
-                    <Link href="/register" asChild>
-                        <TouchableOpacity className="bg-cyan-500 rounded-full px-8 py-4 shadow-lg shadow-cyan-500/30">
-                            <Text className="text-black font-bold text-base">Get Started Free</Text>
-                        </TouchableOpacity>
-                    </Link>
-                </View>
+                <Link href="/register" asChild>
+                    <TouchableOpacity style={styles.cta}>
+                        <Text style={styles.ctaText}>Get Started Free</Text>
+                    </TouchableOpacity>
+                </Link>
             </View>
         </View>
     );
 };
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#000',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        minHeight: 500,
+    },
+    glow: {
+        position: 'absolute',
+        top: 0, left: '20%', right: '20%',
+        height: 200,
+        backgroundColor: '#40D3F4',
+        borderRadius: 999,
+    },
+    content: {
+        alignItems: 'center',
+        paddingTop: 40,
+        zIndex: 10,
+    },
+    badge: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        marginBottom: 16,
+    },
+    badgeText: {
+        color: '#22d3ee',
+        fontWeight: '600',
+        fontSize: 12,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    title: {
+        fontSize: 40,
+        fontWeight: '800',
+        color: '#fff',
+        textAlign: 'center',
+        lineHeight: 48,
+        marginBottom: 16,
+    },
+    titleAccent: {
+        color: '#22d3ee',
+    },
+    subtitle: {
+        color: '#a1a1aa',
+        textAlign: 'center',
+        fontSize: 16,
+        lineHeight: 24,
+        maxWidth: 350,
+        marginBottom: 32,
+    },
+    cta: {
+        backgroundColor: '#22d3ee',
+        borderRadius: 30,
+        paddingHorizontal: 32,
+        paddingVertical: 16,
+        shadowColor: '#22d3ee',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.4,
+        shadowRadius: 15,
+        elevation: 8,
+    },
+    ctaText: {
+        color: '#000',
+        fontWeight: '700',
+        fontSize: 16,
+    },
+});

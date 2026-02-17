@@ -1,7 +1,5 @@
-import React from 'react';
-import { TouchableOpacity, Text, TouchableOpacityProps, ActivityIndicator } from 'react-native';
-import { cn } from '../../lib/utils';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import React, { useRef } from 'react';
+import { TouchableOpacity, Text, TouchableOpacityProps, ActivityIndicator, Animated, StyleSheet } from 'react-native';
 
 interface NeonButtonProps extends TouchableOpacityProps {
     children: React.ReactNode;
@@ -9,56 +7,99 @@ interface NeonButtonProps extends TouchableOpacityProps {
     loading?: boolean;
 }
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
-
-export function NeonButton({ children, variant = 'primary', loading, className, ...props }: NeonButtonProps) {
-    const scale = useSharedValue(1);
-
-    const animatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: scale.value }],
-    }));
+export function NeonButton({ children, variant = 'primary', loading, style, ...props }: NeonButtonProps) {
+    const scale = useRef(new Animated.Value(1)).current;
 
     const handlePressIn = () => {
-        scale.value = withSpring(0.95);
+        Animated.spring(scale, { toValue: 0.95, useNativeDriver: true }).start();
     };
 
     const handlePressOut = () => {
-        scale.value = withSpring(1);
+        Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
     };
 
-    const variants = {
-        primary: "bg-cyan-500 shadow-[0_0_15px_rgba(34,211,238,0.4)] border-transparent",
-        secondary: "bg-purple-600 shadow-[0_0_15px_rgba(147,51,234,0.4)] border-transparent",
-        outline: "bg-transparent border border-cyan-500/50 shadow-[0_0_10px_rgba(34,211,238,0.1)]",
+    const variantStyles = {
+        primary: styles.primary,
+        secondary: styles.secondary,
+        outline: styles.outline,
     };
 
-    const textVariants = {
-        primary: "text-black font-bold",
-        secondary: "text-white font-bold",
-        outline: "text-cyan-400 font-semibold",
+    const textStyles = {
+        primary: styles.textPrimary,
+        secondary: styles.textSecondary,
+        outline: styles.textOutline,
     };
 
     return (
-        <AnimatedTouchableOpacity
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            activeOpacity={0.8}
-            className={cn(
-                "py-4 rounded-xl items-center justify-center flex-row border",
-                variants[variant],
-                props.disabled && "opacity-50",
-                className
-            )}
-            disabled={loading || props.disabled}
-            {...props}
-        >
-            {loading ? (
-                <ActivityIndicator color={variant === 'primary' ? 'black' : 'white'} />
-            ) : (
-                <Text className={cn("text-base tracking-wide", textVariants[variant])}>
-                    {children}
-                </Text>
-            )}
-        </AnimatedTouchableOpacity>
+        <Animated.View style={{ transform: [{ scale }] }}>
+            <TouchableOpacity
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                activeOpacity={0.8}
+                style={[styles.base, variantStyles[variant], props.disabled && styles.disabled, style]}
+                disabled={loading || props.disabled}
+                {...props}
+            >
+                {loading ? (
+                    <ActivityIndicator color={variant === 'primary' ? 'black' : 'white'} />
+                ) : (
+                    typeof children === 'string' ? (
+                        <Text style={[styles.text, textStyles[variant]]}>{children}</Text>
+                    ) : children
+                )}
+            </TouchableOpacity>
+        </Animated.View>
     );
 }
+
+const styles = StyleSheet.create({
+    base: {
+        paddingVertical: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        borderWidth: 1,
+    },
+    primary: {
+        backgroundColor: '#22d3ee',
+        borderColor: 'transparent',
+        shadowColor: '#22d3ee',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.4,
+        shadowRadius: 15,
+        elevation: 8,
+    },
+    secondary: {
+        backgroundColor: '#9333ea',
+        borderColor: 'transparent',
+        shadowColor: '#9333ea',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.4,
+        shadowRadius: 15,
+        elevation: 8,
+    },
+    outline: {
+        backgroundColor: 'transparent',
+        borderColor: 'rgba(34, 211, 238, 0.5)',
+    },
+    disabled: {
+        opacity: 0.5,
+    },
+    text: {
+        fontSize: 16,
+        letterSpacing: 0.5,
+    },
+    textPrimary: {
+        color: '#000',
+        fontWeight: '700',
+    },
+    textSecondary: {
+        color: '#fff',
+        fontWeight: '700',
+    },
+    textOutline: {
+        color: '#22d3ee',
+        fontWeight: '600',
+    },
+});
