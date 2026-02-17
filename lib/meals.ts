@@ -180,3 +180,54 @@ export async function getTodayWater(): Promise<number> {
 
     return data.reduce((sum, entry) => sum + (entry.amount_ml || 0), 0);
 }
+
+/**
+ * Get weekly stats (last 7 days) for the stats page
+ */
+export async function getWeeklyStats(): Promise<{
+    dailyCalories: number[];
+    totalMeals: number;
+    avgCalories: number;
+    totalScans: number;
+    streak: number;
+}> {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+    const defaultResult = { dailyCalories: [0, 0, 0, 0, 0, 0, 0], totalMeals: 0, avgCalories: 0, totalScans: 0, streak: 0 };
+    if (!userId) return defaultResult;
+
+    // Get the start of the week (Monday)
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ...
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+
+    const { data, error } = await supabase
+        .from('food_logs')
+        .select('calories, created_at')
+        .eq('user_id', userId)
+        .gte('created_at', monday.toISOString())
+        .order('created_at', { ascending: true });
+
+    if (error || !data) return defaultResult;
+
+    // Group by day of week (Mon=0 ... Sun=6)
+    const dailyCalories = [0, 0, 0, 0, 0, 0, 0];
+    data.forEach(m => {
+        const d = new Date(m.created_at);
+        let idx = d.getDay() - 1; // Mon=0 ... Sat=5
+        if (idx < 0) idx = 6; // Sun=6
+        dailyCalories[idx] += (m.calories || 0);
+    });
+
+    const totalMeals = data.length;
+    const totalCals = dailyCalories.reduce((a, b) => a + b, 0);
+    const daysWithData = dailyCalories.filter(c => c > 0).length;
+    const avgCalories = daysWithData > 0 ? Math.round(totalCals / daysWithData) : 0;
+
+    const streak = await getStreak();
+
+    return { dailyCalories, totalMeals, avgCalories, totalScans: totalMeals, streak };
+}
