@@ -1,6 +1,6 @@
 /**
- * Direct OpenAI GPT-4o Vision integration
- * Calls OpenAI API directly from the client using EXPO_PUBLIC_OPENAI_API_KEY
+ * AI Food Analysis using Google Gemini 1.5 Flash (FREE)
+ * Calls Gemini API directly from the client using EXPO_PUBLIC_GEMINI_API_KEY
  */
 
 export interface DetectedFood {
@@ -28,14 +28,12 @@ export interface AnalyzeResponse {
     processing_time_ms: number;
 }
 
-const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY || '';
+const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
+
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 /**
- * Analyze a food image using GPT-4o Vision
- * @param base64Image - base64-encoded image (JPEG/PNG)
- * @param mealType - breakfast/lunch/dinner/snack
- * @param dietaryPreferences - user dietary preferences
- * @param healthFocus - user health focus areas
+ * Analyze a food image using Gemini 1.5 Flash Vision
  */
 export async function analyzeFood(
     base64Image: string,
@@ -43,15 +41,15 @@ export async function analyzeFood(
     dietaryPreferences: string[] = [],
     healthFocus: string[] = []
 ): Promise<AnalyzeResponse> {
-    if (!OPENAI_API_KEY) {
-        throw new Error('OpenAI API key is not configured. Add EXPO_PUBLIC_OPENAI_API_KEY to your environment.');
+    if (!GEMINI_API_KEY) {
+        throw new Error('Gemini API key is not configured. Add EXPO_PUBLIC_GEMINI_API_KEY to your environment.');
     }
 
     const startTime = Date.now();
 
-    const systemPrompt = `You are a professional nutritionist AI. Analyze the food in the image and return a JSON response.
+    const prompt = `You are a professional nutritionist AI. Analyze the food in this image and return a JSON response.
 
-Your response MUST be valid JSON with this exact structure:
+Your response MUST be ONLY valid JSON (no markdown, no code fences, no extra text) with this exact structure:
 {
   "success": true,
   "foods": [
@@ -73,7 +71,7 @@ Your response MUST be valid JSON with this exact structure:
   "total_fat": 8.0,
   "total_fiber": 3.0,
   "health_score": 75,
-  "insight": "A brief nutritional insight about this meal in the user's context"
+  "insight": "A brief nutritional insight about this meal"
 }
 
 Rules:
@@ -82,51 +80,44 @@ Rules:
 - Calculate macros per item accurately
 - health_score is 0-100 (100 = very healthy)
 - confidence is 0-1 (1 = very confident)
-- Provide insight in Turkish if meal context suggests Turkish user
-- Consider the meal type: ${mealType}
+- Provide insight in Turkish
+- Meal type context: ${mealType}
 ${dietaryPreferences.length > 0 ? `- User dietary preferences: ${dietaryPreferences.join(', ')}` : ''}
 ${healthFocus.length > 0 ? `- User health focus: ${healthFocus.join(', ')}` : ''}
-- Return ONLY valid JSON, no markdown, no code fences, no extra text`;
+- Return ONLY valid JSON`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(GEMINI_URL, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            model: 'gpt-4o',
-            messages: [
-                { role: 'system', content: systemPrompt },
-                {
-                    role: 'user',
-                    content: [
-                        { type: 'text', text: 'Analyze this food image and return nutritional information as JSON.' },
-                        {
-                            type: 'image_url',
-                            image_url: {
-                                url: `data:image/jpeg;base64,${base64Image}`,
-                                detail: 'low',
-                            },
+            contents: [{
+                parts: [
+                    { text: prompt },
+                    {
+                        inline_data: {
+                            mime_type: 'image/jpeg',
+                            data: base64Image,
                         },
-                    ],
-                },
-            ],
-            max_tokens: 1000,
-            temperature: 0.3,
+                    },
+                ],
+            }],
+            generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 1000,
+            },
         }),
     });
 
     if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`OpenAI API error (${response.status}): ${errorBody}`);
+        throw new Error(`Gemini API error (${response.status}): ${errorBody}`);
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!content) {
-        throw new Error('OpenAI returned an empty response.');
+        throw new Error('Gemini returned an empty response.');
     }
 
     // Parse JSON — handle possible markdown code fences
