@@ -6,7 +6,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 
 export default function CameraScreen() {
     const [permission, requestPermission] = useCameraPermissions();
@@ -16,8 +15,7 @@ export default function CameraScreen() {
     const [analyzing, setAnalyzing] = useState(false);
     const router = useRouter();
 
-    // Scanner animation
-    const scanLineY = useSharedValue(0);
+    // Scanner animation placeholder
 
     if (!permission) {
         // Camera permissions are still loading.
@@ -132,14 +130,6 @@ export default function CameraScreen() {
         }
     };
 
-    // Animation for scanner
-    const animatedScanStyle = useAnimatedStyle(() => {
-        // Simple vertical scan
-        return {
-            // transform: [{ translateY: withRepeat(withTiming(500, { duration: 2000, easing: Easing.linear }), -1, true) }]
-            // keeping it simple for now without reanimated complexity to avoid errors
-        }
-    });
 
     return (
         <View style={styles.container}>
