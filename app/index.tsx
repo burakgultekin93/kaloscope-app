@@ -85,7 +85,7 @@ export default function LandingPage() {
                     <View style={styles.navbar}>
                         <View style={styles.logoContainer}>
                             <Text style={styles.logoIcon}>◉</Text>
-                            <Text style={styles.logoText}>KaloScope</Text>
+                            <Text style={styles.logoText}>CalorieAI</Text>
                         </View>
                         <TouchableOpacity
                             style={styles.navLoginBtn}
@@ -104,7 +104,7 @@ export default function LandingPage() {
 
                         <Text style={styles.heroTitle}>
                             Snap Your Meal.{'\n'}
-                            <Text style={styles.heroTitleAccent}>Know Every Calorie.</Text>
+                            <Text style={styles.heroTitleAccent}>Know Your Nutrition.</Text>
                         </Text>
 
                         <Text style={styles.heroSubtitle}>
@@ -211,7 +211,7 @@ export default function LandingPage() {
                             </View>
                             <Text style={styles.pricingDesc}>Perfect for getting started</Text>
                             <View style={styles.pricingFeatures}>
-                                {['5 AI scans per day', 'Basic nutrition data', 'Daily tracking'].map((f, i) => (
+                                {['3 AI scans per day', 'Basic nutrition data', 'Daily tracking'].map((f, i) => (
                                     <View key={i} style={styles.pricingFeatureRow}>
                                         <Text style={styles.checkmark}>✓</Text>
                                         <Text style={styles.pricingFeatureText}>{f}</Text>
@@ -233,14 +233,14 @@ export default function LandingPage() {
                             </View>
                             <Text style={[styles.pricingPlanName, { color: '#fff' }]}>Pro</Text>
                             <View style={styles.priceRow}>
-                                <Text style={[styles.priceAmount, { color: '#22d3ee' }]}>₺79</Text>
+                                <Text style={[styles.priceAmount, { color: '#4CAF50' }]}>₺149.99</Text>
                                 <Text style={styles.pricePeriod}>/month</Text>
                             </View>
                             <Text style={styles.pricingDesc}>For serious nutrition trackers</Text>
                             <View style={styles.pricingFeatures}>
                                 {['Unlimited AI scans', 'Detailed macro breakdown', 'Weekly & monthly reports', 'Custom meal plans', 'Priority support'].map((f, i) => (
                                     <View key={i} style={styles.pricingFeatureRow}>
-                                        <Text style={[styles.checkmark, { color: '#22d3ee' }]}>✓</Text>
+                                        <Text style={[styles.checkmark, { color: '#4CAF50' }]}>✓</Text>
                                         <Text style={styles.pricingFeatureText}>{f}</Text>
                                     </View>
                                 ))}
@@ -272,7 +272,7 @@ export default function LandingPage() {
                     <View style={styles.footerContent}>
                         <View style={styles.logoContainer}>
                             <Text style={styles.logoIcon}>◉</Text>
-                            <Text style={styles.logoText}>KaloScope</Text>
+                            <Text style={styles.logoText}>CalorieAI</Text>
                         </View>
                         <Text style={styles.footerText}>© 2025 KaloScope. AI-Powered Nutrition Tracking.</Text>
                     </View>
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     },
     glowOrb1: {
         width: 400, height: 400,
-        backgroundColor: '#22d3ee',
+        backgroundColor: '#4CAF50',
         top: -100, left: -100,
     },
     glowOrb2: {
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     logoIcon: {
-        color: '#22d3ee',
+        color: '#4CAF50',
         fontSize: 24,
         fontWeight: '700',
     },
@@ -354,9 +354,9 @@ const styles = StyleSheet.create({
     heroBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(34, 211, 238, 0.08)',
+        backgroundColor: 'rgba(76, 175, 80, 0.08)',
         borderWidth: 1,
-        borderColor: 'rgba(34, 211, 238, 0.2)',
+        borderColor: 'rgba(76, 175, 80, 0.2)',
         borderRadius: 20,
         paddingHorizontal: 16,
         paddingVertical: 8,
@@ -366,10 +366,10 @@ const styles = StyleSheet.create({
     badgeDot: {
         width: 8, height: 8,
         borderRadius: 4,
-        backgroundColor: '#22d3ee',
+        backgroundColor: '#4CAF50',
     },
     heroBadgeText: {
-        color: '#22d3ee',
+        color: '#4CAF50',
         fontSize: 13,
         fontWeight: '600',
     },
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     heroTitleAccent: {
-        color: '#22d3ee',
+        color: '#4CAF50',
     },
     heroSubtitle: {
         fontSize: isWide ? 18 : 16,
@@ -399,11 +399,11 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     primaryCTA: {
-        backgroundColor: '#22d3ee',
+        backgroundColor: '#4CAF50',
         paddingHorizontal: 28,
         paddingVertical: 14,
         borderRadius: 10,
-        shadowColor: '#22d3ee',
+        shadowColor: '#4CAF50',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 12,
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
         paddingVertical: 64,
     },
     sectionLabel: {
-        color: '#22d3ee',
+        color: '#4CAF50',
         fontSize: 12,
         fontWeight: '700',
         letterSpacing: 2,
@@ -517,14 +517,14 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     stepNumber: {
-        color: '#22d3ee',
+        color: '#4CAF50',
         fontSize: 14,
         fontWeight: '800',
     },
     stepLine: {
         flex: 1,
         height: 1,
-        backgroundColor: 'rgba(34, 211, 238, 0.15)',
+        backgroundColor: 'rgba(76, 175, 80, 0.15)',
     },
     stepIcon: { fontSize: 36, marginBottom: 12 },
     stepTitle: { color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 8 },
@@ -571,14 +571,14 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     pricingCardPro: {
-        borderColor: 'rgba(34, 211, 238, 0.3)',
-        backgroundColor: 'rgba(34, 211, 238, 0.04)',
+        borderColor: 'rgba(76, 175, 80, 0.3)',
+        backgroundColor: 'rgba(76, 175, 80, 0.04)',
     },
     proLabel: {
         position: 'absolute',
         top: -12,
         alignSelf: 'center',
-        backgroundColor: '#22d3ee',
+        backgroundColor: '#4CAF50',
         paddingHorizontal: 16,
         paddingVertical: 4,
         borderRadius: 20,
@@ -647,11 +647,11 @@ const styles = StyleSheet.create({
         fontSize: 15,
     },
     pricingCTAPro: {
-        backgroundColor: '#22d3ee',
+        backgroundColor: '#4CAF50',
         paddingVertical: 14,
         borderRadius: 10,
         alignItems: 'center',
-        shadowColor: '#22d3ee',
+        shadowColor: '#4CAF50',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 12,

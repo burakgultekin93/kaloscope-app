@@ -1,32 +1,34 @@
 import { supabase } from './supabase';
 
-export interface MealData {
+export interface FoodLogData {
     food_name: string;
     calories: number;
     protein: number;
     carbs: number;
     fat: number;
+    fiber?: number;
     meal_type?: string;
-    image_base64?: string;
-    ai_response?: any;
+    image_url?: string;
+    ai_details?: any;
+    serving_info?: string;
 }
 
-export interface MealRow extends MealData {
+export interface FoodLogRow extends FoodLogData {
     id: string;
     user_id: string;
     created_at: string;
 }
 
 /**
- * Save a meal to Supabase
+ * Save a food log to Supabase
  */
-export async function saveMeal(data: MealData): Promise<MealRow> {
+export async function saveFoodLog(data: FoodLogData): Promise<FoodLogRow> {
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData?.user?.id;
     if (!userId) throw new Error('Not authenticated');
 
     const { data: row, error } = await supabase
-        .from('meals')
+        .from('food_logs')
         .insert({
             user_id: userId,
             food_name: data.food_name,
@@ -34,60 +36,62 @@ export async function saveMeal(data: MealData): Promise<MealRow> {
             protein: data.protein,
             carbs: data.carbs,
             fat: data.fat,
+            fiber: data.fiber || 0,
             meal_type: data.meal_type || 'snack',
-            image_base64: data.image_base64 || null,
-            ai_response: data.ai_response || null,
+            image_url: data.image_url || null,
+            ai_details: data.ai_details || null,
+            serving_info: data.serving_info || null
         })
         .select()
         .single();
 
     if (error) throw error;
-    return row as MealRow;
+    return row as FoodLogRow;
 }
 
 /**
- * Fetch recent meals for the current user
+ * Fetch recent food logs for the current user
  */
-export async function getRecentMeals(limit: number = 10): Promise<MealRow[]> {
+export async function getRecentMeals(limit: number = 10): Promise<FoodLogRow[]> {
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData?.user?.id;
     if (!userId) return [];
 
     const { data, error } = await supabase
-        .from('meals')
+        .from('food_logs')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(limit);
 
     if (error) {
-        console.error('Failed to fetch meals:', error);
+        console.error('Failed to fetch food logs:', error);
         return [];
     }
-    return (data || []) as MealRow[];
+    return (data || []) as FoodLogRow[];
 }
 
 /**
- * Get today's nutrition totals
+ * Get today's nutrition totals from food_logs
  */
 export async function getTodayTotals(): Promise<{ calories: number; protein: number; carbs: number; fat: number; count: number }> {
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData?.user?.id;
     if (!userId) return { calories: 0, protein: 0, carbs: 0, fat: 0, count: 0 };
 
-    const today = new Date().toISOString().split('T')[0];
+    const todayDate = new Date().toISOString().split('T')[0];
 
     const { data, error } = await supabase
-        .from('meals')
+        .from('food_logs')
         .select('calories, protein, carbs, fat')
         .eq('user_id', userId)
-        .gte('created_at', `${today}T00:00:00`)
-        .lte('created_at', `${today}T23:59:59`);
+        .gte('created_at', `${todayDate}T00:00:00`)
+        .lte('created_at', `${todayDate}T23:59:59`);
 
     if (error || !data) return { calories: 0, protein: 0, carbs: 0, fat: 0, count: 0 };
 
     return data.reduce(
-        (acc, m) => ({
+        (acc: { calories: number; protein: number; carbs: number; fat: number; count: number }, m) => ({
             calories: acc.calories + (m.calories || 0),
             protein: acc.protein + (m.protein || 0),
             carbs: acc.carbs + (m.carbs || 0),
@@ -99,30 +103,23 @@ export async function getTodayTotals(): Promise<{ calories: number; protein: num
 }
 
 /**
- * Calculate the current day streak (consecutive days with at least 1 meal)
+ * Calculate the current day streak from food_logs
  */
 export async function getStreak(): Promise<number> {
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData?.user?.id;
     if (!userId) return 0;
 
-    // Get meals from the last 90 days, grouped by date
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-
     const { data, error } = await supabase
-        .from('meals')
+        .from('food_logs')
         .select('created_at')
         .eq('user_id', userId)
-        .gte('created_at', ninetyDaysAgo.toISOString())
         .order('created_at', { ascending: false });
 
     if (error || !data || data.length === 0) return 0;
 
-    // Get unique dates (YYYY-MM-DD)
     const uniqueDates = [...new Set(data.map(m => m.created_at.split('T')[0]))].sort().reverse();
 
-    // Count streak from today backwards
     let streak = 0;
     const today = new Date();
 
@@ -134,7 +131,6 @@ export async function getStreak(): Promise<number> {
         if (uniqueDates.includes(dateStr)) {
             streak++;
         } else if (i === 0) {
-            // Today doesn't have a meal yet — that's OK, check yesterday
             continue;
         } else {
             break;
@@ -142,4 +138,45 @@ export async function getStreak(): Promise<number> {
     }
 
     return streak;
+}
+
+/**
+ * Save a water log entry
+ */
+export async function saveWaterLog(amountMl: number): Promise<void> {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+    if (!userId) throw new Error('Not authenticated');
+
+    const { error } = await supabase
+        .from('water_logs')
+        .insert({
+            user_id: userId,
+            amount_ml: amountMl,
+            type: 'plain_water'
+        });
+
+    if (error) throw error;
+}
+
+/**
+ * Get total water intake for today
+ */
+export async function getTodayWater(): Promise<number> {
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+    if (!userId) return 0;
+
+    const todayDate = new Date().toISOString().split('T')[0];
+
+    const { data, error } = await supabase
+        .from('water_logs')
+        .select('amount_ml')
+        .eq('user_id', userId)
+        .gte('created_at', `${todayDate}T00:00:00`)
+        .lte('created_at', `${todayDate}T23:59:59`);
+
+    if (error || !data) return 0;
+
+    return data.reduce((sum, entry) => sum + (entry.amount_ml || 0), 0);
 }

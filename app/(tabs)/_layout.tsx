@@ -2,6 +2,7 @@ import React from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Home, Notebook, BarChart2, User, ScanLine } from 'lucide-react-native';
+import { useI18n } from '../../lib/i18n';
 
 const CustomScanButton = ({ children, onPress }: any) => (
     <TouchableOpacity
@@ -16,6 +17,7 @@ const CustomScanButton = ({ children, onPress }: any) => (
 
 export default function TabLayout() {
     const router = useRouter();
+    const { t } = useI18n();
 
     return (
         <Tabs
@@ -42,14 +44,14 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="index"
                 options={{
-                    title: 'Home',
+                    title: t('tab_home'),
                     tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
                 }}
             />
             <Tabs.Screen
                 name="diary"
                 options={{
-                    title: 'Diary',
+                    title: t('tab_diary'),
                     tabBarIcon: ({ color, size }) => <Notebook size={size} color={color} />,
                 }}
             />
@@ -76,14 +78,14 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="stats"
                 options={{
-                    title: 'Stats',
+                    title: t('tab_stats'),
                     tabBarIcon: ({ color, size }) => <BarChart2 size={size} color={color} />,
                 }}
             />
             <Tabs.Screen
                 name="profile"
                 options={{
-                    title: 'Profile',
+                    title: t('tab_profile'),
                     tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
                 }}
             />

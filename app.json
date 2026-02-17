@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "KaloScope",
-    "slug": "kaloscope",
+    "name": "CalorieAI",
+    "slug": "calorieai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-    "scheme": "kaloscope",
+    "scheme": "calorieai",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -26,7 +26,7 @@
     },
     "web": {
       "bundler": "metro",
-      "title": "KaloScope",
+      "title": "CalorieAI",
       "favicon": "./assets/favicon.png"
     }
   }

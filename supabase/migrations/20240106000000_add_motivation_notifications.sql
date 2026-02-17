@@ -1,0 +1,6 @@
+-- Migration: Add motivation and notification flags to profiles
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS motivation_mode BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS remind_water BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS remind_fruit BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS remind_snacks BOOLEAN DEFAULT FALSE;

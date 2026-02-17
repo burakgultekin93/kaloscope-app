@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, SafeAreaView, ScrollView, StyleSheet, Platform } from 'react-native';
+import { useI18n } from '../../lib/i18n';
 
 export default function StatsScreen() {
+    const { t } = useI18n();
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const weekData = [0, 0, 0, 0, 0, 0, 0]; // Placeholder data
 
@@ -12,12 +14,12 @@ export default function StatsScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                <Text style={styles.title}>Statistics</Text>
-                <Text style={styles.subtitle}>Your nutrition overview</Text>
+                <Text style={styles.title}>{t('stats_title')}</Text>
+                <Text style={styles.subtitle}>{t('stats_subtitle')}</Text>
 
                 {/* Weekly Overview */}
                 <View style={styles.card}>
-                    <Text style={styles.cardTitle}>This Week</Text>
+                    <Text style={styles.cardTitle}>{t('this_week')}</Text>
                     <View style={styles.weekChart}>
                         {weekDays.map((day, i) => (
                             <View key={i} style={styles.barCol}>
@@ -34,30 +36,30 @@ export default function StatsScreen() {
                 <View style={styles.statsRow}>
                     <View style={styles.statCard}>
                         <Text style={styles.statValue}>0</Text>
-                        <Text style={styles.statLabel}>Meals Logged</Text>
+                        <Text style={styles.statLabel}>{t('meals_logged')}</Text>
                     </View>
                     <View style={styles.statCard}>
-                        <Text style={[styles.statValue, { color: '#22d3ee' }]}>0</Text>
-                        <Text style={styles.statLabel}>Avg. Calories</Text>
+                        <Text style={[styles.statValue, { color: '#4CAF50' }]}>0</Text>
+                        <Text style={styles.statLabel}>{t('avg_calories')}</Text>
                     </View>
                 </View>
 
                 <View style={styles.statsRow}>
                     <View style={styles.statCard}>
                         <Text style={[styles.statValue, { color: '#3b82f6' }]}>0</Text>
-                        <Text style={styles.statLabel}>Day Streak</Text>
+                        <Text style={styles.statLabel}>{t('day_streak')}</Text>
                     </View>
                     <View style={styles.statCard}>
                         <Text style={[styles.statValue, { color: '#8b5cf6' }]}>0</Text>
-                        <Text style={styles.statLabel}>AI Scans</Text>
+                        <Text style={styles.statLabel}>{t('ai_scans')}</Text>
                     </View>
                 </View>
 
                 {/* Empty State */}
                 <View style={styles.emptyCard}>
                     <Text style={styles.emptyIcon}>📊</Text>
-                    <Text style={styles.emptyTitle}>Start tracking to see stats</Text>
-                    <Text style={styles.emptyDesc}>Scan meals consistently to build up your nutrition insights and weekly reports.</Text>
+                    <Text style={styles.emptyTitle}>{t('stats_empty_title')}</Text>
+                    <Text style={styles.emptyDesc}>{t('stats_empty_desc')}</Text>
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -87,8 +89,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         marginBottom: 24,
     },
-
-    // Weekly Chart
     card: {
         backgroundColor: 'rgba(255,255,255,0.03)',
         borderWidth: 1,
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     },
     barFill: {
         width: '100%',
-        backgroundColor: '#22d3ee',
+        backgroundColor: '#4CAF50',
         borderRadius: 12,
     },
     barDay: {
@@ -132,8 +132,6 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '600',
     },
-
-    // Stat Cards
     statsRow: {
         flexDirection: 'row',
         gap: 12,
@@ -159,8 +157,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '500',
     },
-
-    // Empty State
     emptyCard: {
         backgroundColor: 'rgba(255,255,255,0.02)',
         borderWidth: 1,

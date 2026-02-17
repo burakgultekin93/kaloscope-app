@@ -6,13 +6,16 @@ import {
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
-import { getRecentMeals, getTodayTotals, getStreak, MealRow } from '../../lib/meals';
+import { getRecentMeals, getTodayTotals, getStreak, FoodLogRow } from '../../lib/meals';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useI18n } from '../../lib/i18n';
+import { getTodayWater, saveWaterLog } from '../../lib/meals';
 
 // ═══════════════════════════════════════════════════════════════════
-//  MACRO PIE CHART — Pure RN View-based donut chart
+//  MACRO PIE CHART
 // ═══════════════════════════════════════════════════════════════════
 const MacroPieChart = ({ protein, carbs, fat }: { protein: number; carbs: number; fat: number }) => {
+    const { t } = useI18n();
     const total = protein + carbs + fat;
     const pP = total > 0 ? (protein / total) * 100 : 33;
     const pC = total > 0 ? (carbs / total) * 100 : 33;
@@ -21,41 +24,36 @@ const MacroPieChart = ({ protein, carbs, fat }: { protein: number; carbs: number
     return (
         <View style={pieStyles.container}>
             <View style={pieStyles.chart}>
-                {/* Background ring */}
                 <View style={pieStyles.ring} />
-
-                {/* Center label */}
                 <View style={pieStyles.center}>
                     <Text style={pieStyles.centerValue}>{total > 0 ? total.toFixed(0) : '—'}</Text>
                     <Text style={pieStyles.centerLabel}>grams</Text>
                 </View>
             </View>
 
-            {/* Legend */}
             <View style={pieStyles.legend}>
                 <View style={pieStyles.legendItem}>
-                    <View style={[pieStyles.legendDot, { backgroundColor: '#22d3ee' }]} />
-                    <Text style={pieStyles.legendLabel}>Protein</Text>
-                    <Text style={[pieStyles.legendValue, { color: '#22d3ee' }]}>{protein.toFixed(0)}g</Text>
+                    <View style={[pieStyles.legendDot, { backgroundColor: '#4CAF50' }]} />
+                    <Text style={pieStyles.legendLabel}>{t('protein')}</Text>
+                    <Text style={[pieStyles.legendValue, { color: '#4CAF50' }]}>{protein.toFixed(0)}g</Text>
                     <Text style={pieStyles.legendPct}>{pP.toFixed(0)}%</Text>
                 </View>
                 <View style={pieStyles.legendItem}>
                     <View style={[pieStyles.legendDot, { backgroundColor: '#3b82f6' }]} />
-                    <Text style={pieStyles.legendLabel}>Carbs</Text>
+                    <Text style={pieStyles.legendLabel}>{t('carbs')}</Text>
                     <Text style={[pieStyles.legendValue, { color: '#3b82f6' }]}>{carbs.toFixed(0)}g</Text>
                     <Text style={pieStyles.legendPct}>{pC.toFixed(0)}%</Text>
                 </View>
                 <View style={pieStyles.legendItem}>
                     <View style={[pieStyles.legendDot, { backgroundColor: '#8b5cf6' }]} />
-                    <Text style={pieStyles.legendLabel}>Fat</Text>
+                    <Text style={pieStyles.legendLabel}>{t('fat')}</Text>
                     <Text style={[pieStyles.legendValue, { color: '#8b5cf6' }]}>{fat.toFixed(0)}g</Text>
                     <Text style={pieStyles.legendPct}>{pF.toFixed(0)}%</Text>
                 </View>
             </View>
 
-            {/* Horizontal stacked bar (visual pie alternative) */}
             <View style={pieStyles.stackedBar}>
-                <View style={[pieStyles.barSegment, { flex: pP || 1, backgroundColor: '#22d3ee', borderTopLeftRadius: 6, borderBottomLeftRadius: 6 }]} />
+                <View style={[pieStyles.barSegment, { flex: pP || 1, backgroundColor: '#4CAF50', borderTopLeftRadius: 6, borderBottomLeftRadius: 6 }]} />
                 <View style={[pieStyles.barSegment, { flex: pC || 1, backgroundColor: '#3b82f6' }]} />
                 <View style={[pieStyles.barSegment, { flex: pF || 1, backgroundColor: '#8b5cf6', borderTopRightRadius: 6, borderBottomRightRadius: 6 }]} />
             </View>
@@ -84,66 +82,58 @@ const pieStyles = StyleSheet.create({
     barSegment: { height: '100%' },
 });
 
-// ═══════════════════════════════════════════════════════════════════
-//  WATER TRACKER — tap to add glasses, stored locally
-// ═══════════════════════════════════════════════════════════════════
 const WATER_GOAL = 8;
+const ML_PER_GLASS = 250;
 
 const WaterTracker = () => {
-    const [glasses, setGlasses] = useState(0);
+    const { t } = useI18n();
+    const [totalMl, setTotalMl] = useState(0);
 
-    useEffect(() => {
-        const today = new Date().toISOString().split('T')[0];
-        AsyncStorage.getItem(`water_${today}`).then(val => {
-            if (val) setGlasses(parseInt(val, 10));
-        }).catch(() => { });
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            loadWater();
+        }, [])
+    );
+
+    const loadWater = async () => {
+        const ml = await getTodayWater();
+        setTotalMl(ml);
+    };
 
     const addGlass = async () => {
-        const newVal = glasses + 1;
-        setGlasses(newVal);
-        const today = new Date().toISOString().split('T')[0];
-        await AsyncStorage.setItem(`water_${today}`, String(newVal));
+        try {
+            await saveWaterLog(ML_PER_GLASS);
+            setTotalMl(prev => prev + ML_PER_GLASS);
+        } catch (error) {
+            console.error('Error adding water:', error);
+        }
     };
 
-    const removeGlass = async () => {
-        if (glasses <= 0) return;
-        const newVal = glasses - 1;
-        setGlasses(newVal);
-        const today = new Date().toISOString().split('T')[0];
-        await AsyncStorage.setItem(`water_${today}`, String(newVal));
-    };
-
-    const pct = Math.min((glasses / WATER_GOAL) * 100, 100);
+    const glasses = Math.floor(totalMl / ML_PER_GLASS);
+    const pct = Math.min((totalMl / (WATER_GOAL * ML_PER_GLASS)) * 100, 100);
 
     return (
         <View style={waterStyles.container}>
             <View style={waterStyles.header}>
-                <Text style={waterStyles.title}>💧 Water Intake</Text>
+                <Text style={waterStyles.title}>💧 {t('water_intake')}</Text>
                 <Text style={waterStyles.count}>
-                    <Text style={waterStyles.countValue}>{glasses}</Text>/{WATER_GOAL} glasses
+                    <Text style={waterStyles.countValue}>{glasses}</Text>/{WATER_GOAL} {t('glasses')}
                 </Text>
             </View>
 
-            {/* Progress bar */}
             <View style={waterStyles.trackBar}>
                 <View style={[waterStyles.trackFill, { width: `${pct}%` }]} />
             </View>
 
-            {/* Glass dots */}
             <View style={waterStyles.dotsRow}>
                 {Array.from({ length: WATER_GOAL }).map((_, i) => (
                     <View key={i} style={[waterStyles.dot, i < glasses && waterStyles.dotFilled]} />
                 ))}
             </View>
 
-            {/* Buttons */}
             <View style={waterStyles.btnRow}>
-                <TouchableOpacity style={waterStyles.minusBtn} onPress={removeGlass}>
-                    <Text style={waterStyles.minusBtnText}>−</Text>
-                </TouchableOpacity>
                 <TouchableOpacity style={waterStyles.addBtn} onPress={addGlass}>
-                    <Text style={waterStyles.addBtnText}>+ Add Glass</Text>
+                    <Text style={waterStyles.addBtnText}>{t('add_water')}</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -159,36 +149,31 @@ const waterStyles = StyleSheet.create({
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
     title: { color: '#fff', fontSize: 15, fontWeight: '700' },
     count: { color: '#52525b', fontSize: 13 },
-    countValue: { color: '#38bdf8', fontWeight: '800', fontSize: 15 },
+    countValue: { color: '#66BB6A', fontWeight: '800', fontSize: 15 },
     trackBar: { width: '100%', height: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden', marginBottom: 12 },
-    trackFill: { height: '100%', backgroundColor: '#38bdf8', borderRadius: 3 },
+    trackFill: { height: '100%', backgroundColor: '#66BB6A', borderRadius: 3 },
     dotsRow: { flexDirection: 'row', gap: 8, justifyContent: 'center', marginBottom: 14 },
     dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)' },
-    dotFilled: { backgroundColor: '#38bdf8' },
+    dotFilled: { backgroundColor: '#66BB6A' },
     btnRow: { flexDirection: 'row', gap: 10 },
-    minusBtn: {
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center',
-    },
-    minusBtnText: { color: '#52525b', fontSize: 18, fontWeight: '700' },
     addBtn: {
-        flex: 1, backgroundColor: 'rgba(56, 189, 248, 0.1)',
-        borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.2)',
+        flex: 1, backgroundColor: 'rgba(102, 187, 106, 0.1)',
+        borderWidth: 1, borderColor: 'rgba(102, 187, 106, 0.2)',
         borderRadius: 10, paddingVertical: 10, alignItems: 'center',
     },
-    addBtnText: { color: '#38bdf8', fontSize: 14, fontWeight: '700' },
+    addBtnText: { color: '#66BB6A', fontSize: 14, fontWeight: '700' },
 });
 
-// ═══════════════════════════════════════════════════════════════════
-//  STREAK BADGE
-// ═══════════════════════════════════════════════════════════════════
-const StreakBadge = ({ streak }: { streak: number }) => (
-    <View style={streakStyles.badge}>
-        <Text style={streakStyles.fire}>🔥</Text>
-        <Text style={streakStyles.count}>{streak}</Text>
-        <Text style={streakStyles.label}>day{streak !== 1 ? 's' : ''}</Text>
-    </View>
-);
+const StreakBadge = ({ streak }: { streak: number }) => {
+    const { lang } = useI18n();
+    return (
+        <View style={streakStyles.badge}>
+            <Text style={streakStyles.fire}>🔥</Text>
+            <Text style={streakStyles.count}>{streak}</Text>
+            <Text style={streakStyles.label}>{lang === 'tr' ? 'gün' : `day${streak !== 1 ? 's' : ''}`}</Text>
+        </View>
+    );
+};
 
 const streakStyles = StyleSheet.create({
     badge: {
@@ -202,9 +187,6 @@ const streakStyles = StyleSheet.create({
     label: { color: '#9a6434', fontSize: 12, fontWeight: '500' },
 });
 
-// ═══════════════════════════════════════════════════════════════════
-//  QUICK ACTION
-// ═══════════════════════════════════════════════════════════════════
 const QuickAction = ({ icon, title, desc, onPress }: { icon: string; title: string; desc: string; onPress: () => void }) => (
     <TouchableOpacity style={styles.actionCard} onPress={onPress} activeOpacity={0.7}>
         <Text style={styles.actionIcon}>{icon}</Text>
@@ -216,11 +198,9 @@ const QuickAction = ({ icon, title, desc, onPress }: { icon: string; title: stri
     </TouchableOpacity>
 );
 
-// ═══════════════════════════════════════════════════════════════════
-//  MEAL ROW
-// ═══════════════════════════════════════════════════════════════════
-const MealItem = ({ meal }: { meal: MealRow }) => {
-    const time = new Date(meal.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+const MealItem = ({ meal }: { meal: FoodLogRow }) => {
+    const { lang } = useI18n();
+    const time = new Date(meal.created_at).toLocaleTimeString(lang === 'tr' ? 'tr-TR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
     return (
         <View style={styles.mealItem}>
             <View style={styles.mealItemLeft}>
@@ -235,16 +215,68 @@ const MealItem = ({ meal }: { meal: MealRow }) => {
     );
 };
 
-// ═══════════════════════════════════════════════════════════════════
-//  HOME SCREEN
-// ═══════════════════════════════════════════════════════════════════
+const MotivationWidget = ({ name }: { name: string }) => {
+    const { t, lang } = useI18n();
+    const [quote, setQuote] = useState('');
+
+    const quotesTR = [
+        "Bugün harika bir seçim yapmaya ne dersin? 🌱",
+        "Her sağlıklı öğün, kendine verdiğin bir sözdür. 💪",
+        "Su içmeyi unutma, parlamaya devam et! 💧",
+        "Küçük adımlar, büyük değişimler yaratır. ✨",
+        "Vücuduna iyi bak, yaşayacak tek yerin orası. 🍎",
+        "Enerjin seçimlerinden gelir. Doğru olanı seç! ⚡"
+    ];
+
+    const quotesEN = [
+        "How about making a great choice today? 🌱",
+        "Every healthy meal is a promise to yourself. 💪",
+        "Don't forget to drink water, keep shining! 💧",
+        "Small steps create big changes. ✨",
+        "Take care of your body, it's the only place you have to live. 🍎",
+        "Your energy comes from your choices. Choose the right one! ⚡"
+    ];
+
+    useEffect(() => {
+        const qList = lang === 'tr' ? quotesTR : quotesEN;
+        const randomQuote = qList[Math.floor(Math.random() * qList.length)];
+        setQuote(randomQuote);
+    }, [lang]);
+
+    return (
+        <View style={motivationStyles.container}>
+            <View style={motivationStyles.header}>
+                <Text style={motivationStyles.emoji}>🌟</Text>
+                <Text style={motivationStyles.title}>{t('motivation_title')}</Text>
+            </View>
+            <Text style={motivationStyles.quote}>"{quote}"</Text>
+            <Text style={motivationStyles.footer}>{t('motivation_footer', { name })}</Text>
+        </View>
+    );
+};
+
+const motivationStyles = StyleSheet.create({
+    container: {
+        backgroundColor: 'rgba(76, 175, 80, 0.05)',
+        borderWidth: 1, borderColor: 'rgba(76, 175, 80, 0.2)',
+        borderRadius: 20, padding: 20, marginBottom: 16,
+    },
+    header: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+    emoji: { fontSize: 20 },
+    title: { color: '#4CAF50', fontSize: 14, fontWeight: '700', textTransform: 'uppercase' },
+    quote: { color: '#fff', fontSize: 16, fontWeight: '600', fontStyle: 'italic', lineHeight: 24, marginBottom: 12 },
+    footer: { color: '#71717a', fontSize: 12, fontWeight: '500' },
+});
+
 export default function HomeScreen() {
+    const { t, lang } = useI18n();
     const router = useRouter();
     const fadeIn = useRef(new Animated.Value(0)).current;
     const [userName, setUserName] = useState('');
     const [totals, setTotals] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0, count: 0 });
-    const [recentMeals, setRecentMeals] = useState<MealRow[]>([]);
+    const [recentMeals, setRecentMeals] = useState<FoodLogRow[]>([]);
     const [streak, setStreak] = useState(0);
+    const [motivationMode, setMotivationMode] = useState(false);
 
     useFocusEffect(
         useCallback(() => {
@@ -255,9 +287,16 @@ export default function HomeScreen() {
     useEffect(() => {
         Animated.timing(fadeIn, { toValue: 1, duration: 600, useNativeDriver: true }).start();
 
-        supabase.auth.getUser().then(({ data }) => {
-            const name = data?.user?.user_metadata?.full_name || data?.user?.email?.split('@')[0] || 'User';
-            setUserName(name);
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user) {
+                const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+                setUserName(name);
+
+                supabase.from('profiles').select('motivation_mode').eq('id', user.id).single()
+                    .then(({ data }) => {
+                        if (data) setMotivationMode(!!data.motivation_mode);
+                    });
+            }
         }).catch(() => setUserName('User'));
     }, []);
 
@@ -273,8 +312,15 @@ export default function HomeScreen() {
     };
 
     const today = new Date();
-    const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
-    const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    const dayName = today.toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'long' });
+    const dateStr = today.toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { month: 'long', day: 'numeric' });
+
+    const getGreeting = () => {
+        const hour = today.getHours();
+        if (hour < 12) return t('greeting_morning');
+        if (hour < 18) return t('greeting_afternoon');
+        return t('greeting_evening');
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -284,10 +330,9 @@ export default function HomeScreen() {
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
                 >
-                    {/* ── Header with Streak ── */}
                     <View style={styles.header}>
                         <View>
-                            <Text style={styles.greeting}>Good {today.getHours() < 12 ? 'Morning' : today.getHours() < 18 ? 'Afternoon' : 'Evening'} 👋</Text>
+                            <Text style={styles.greeting}>{getGreeting()} 👋</Text>
                             <Text style={styles.userName}>{userName}</Text>
                         </View>
                         <View style={styles.headerRight}>
@@ -299,48 +344,50 @@ export default function HomeScreen() {
                         </View>
                     </View>
 
-                    {/* ── Calorie Summary ── */}
                     <View style={styles.summaryCard}>
                         <View style={styles.summaryHeader}>
-                            <Text style={styles.summaryTitle}>Today's Nutrition</Text>
+                            <Text style={styles.summaryTitle}>{t('todays_nutrition')}</Text>
                             <View style={styles.calorieBadge}>
                                 <Text style={styles.calorieBadgeText}>{totals.calories} / 2,000 kcal</Text>
                             </View>
                         </View>
 
-                        {/* Calorie progress bar */}
                         <View style={styles.calorieBar}>
                             <View style={[styles.calorieBarFill, { width: `${Math.min((totals.calories / 2000) * 100, 100)}%` }]} />
                         </View>
 
                         {totals.count === 0 && (
-                            <Text style={styles.summaryHint}>📸 Scan your first meal to start tracking!</Text>
+                            <Text style={styles.summaryHint}>📸 {lang === 'tr' ? 'İlk öğününü tara ve takibe başla!' : 'Scan your first meal to start tracking!'}</Text>
                         )}
                     </View>
 
-                    {/* ── Macro Breakdown Chart ── */}
                     <View style={styles.chartCard}>
-                        <Text style={styles.chartTitle}>Macro Breakdown</Text>
+                        <Text style={styles.chartTitle}>{t('macro_breakdown')}</Text>
                         <MacroPieChart protein={totals.protein} carbs={totals.carbs} fat={totals.fat} />
                     </View>
 
-                    {/* ── Water Tracker ── */}
+                    {motivationMode && <MotivationWidget name={userName} />}
                     <WaterTracker />
 
-                    {/* ── Quick Actions ── */}
-                    <Text style={styles.sectionTitle}>Quick Actions</Text>
+                    <Text style={styles.sectionTitle}>{t('quick_actions')}</Text>
 
                     <QuickAction
                         icon="📸"
-                        title="Scan Food"
-                        desc="Take a photo for instant AI analysis"
+                        title={t('scan_food')}
+                        desc={t('scan_food_desc')}
                         onPress={() => router.push('/camera')}
                     />
 
-                    {/* ── Recent Scans ── */}
+                    <QuickAction
+                        icon="🍳"
+                        title={t('recipe_assistant')}
+                        desc={t('recipe_assistant_desc')}
+                        onPress={() => router.push('/recipe-assistant')}
+                    />
+
                     {recentMeals.length > 0 && (
                         <>
-                            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Recent Scans</Text>
+                            <Text style={[styles.sectionTitle, { marginTop: 24 }]}>{t('recent_scans')}</Text>
                             <View style={styles.recentCard}>
                                 {recentMeals.map((meal, i) => (
                                     <React.Fragment key={meal.id}>
@@ -359,9 +406,6 @@ export default function HomeScreen() {
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  STYLES
-// ═══════════════════════════════════════════════════════════════════
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#09090b' },
     scroll: { flex: 1 },
@@ -370,8 +414,6 @@ const styles = StyleSheet.create({
         paddingTop: Platform.OS === 'web' ? 32 : 16,
         maxWidth: 600, width: '100%', alignSelf: 'center',
     },
-
-    // Header
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
     greeting: { color: '#71717a', fontSize: 14, marginBottom: 4 },
     userName: { color: '#fff', fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
@@ -380,10 +422,8 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
         borderRadius: 12, paddingHorizontal: 14, paddingVertical: 6, alignItems: 'flex-end',
     },
-    dateDay: { color: '#22d3ee', fontSize: 11, fontWeight: '700' },
+    dateDay: { color: '#4CAF50', fontSize: 11, fontWeight: '700' },
     dateStr: { color: '#71717a', fontSize: 11, marginTop: 2 },
-
-    // Summary
     summaryCard: {
         backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
         borderRadius: 20, padding: 24, marginBottom: 16,
@@ -391,25 +431,19 @@ const styles = StyleSheet.create({
     summaryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
     summaryTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
     calorieBadge: {
-        backgroundColor: 'rgba(34, 211, 238, 0.08)', borderWidth: 1, borderColor: 'rgba(34, 211, 238, 0.2)',
+        backgroundColor: 'rgba(76, 175, 80, 0.08)', borderWidth: 1, borderColor: 'rgba(76, 175, 80, 0.2)',
         borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4,
     },
-    calorieBadgeText: { color: '#22d3ee', fontSize: 12, fontWeight: '700' },
+    calorieBadgeText: { color: '#4CAF50', fontSize: 12, fontWeight: '700' },
     calorieBar: { width: '100%', height: 8, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', marginBottom: 12 },
-    calorieBarFill: { height: '100%', backgroundColor: '#22d3ee', borderRadius: 4 },
+    calorieBarFill: { height: '100%', backgroundColor: '#4CAF50', borderRadius: 4 },
     summaryHint: { color: '#52525b', fontSize: 13, textAlign: 'center', marginTop: 4 },
-
-    // Chart
     chartCard: {
         backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
         borderRadius: 20, padding: 24, marginBottom: 16,
     },
     chartTitle: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 16 },
-
-    // Section
     sectionTitle: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 12 },
-
-    // Action Cards
     actionCard: {
         flexDirection: 'row', alignItems: 'center',
         backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
@@ -419,8 +453,6 @@ const styles = StyleSheet.create({
     actionTitle: { color: '#fff', fontSize: 15, fontWeight: '600', marginBottom: 2 },
     actionDesc: { color: '#71717a', fontSize: 13 },
     actionArrow: { color: '#3f3f46', fontSize: 18 },
-
-    // Recent Scans
     recentCard: {
         backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
         borderRadius: 16, overflow: 'hidden',
@@ -430,7 +462,7 @@ const styles = StyleSheet.create({
     mealItemName: { color: '#fff', fontSize: 15, fontWeight: '600', marginBottom: 4 },
     mealItemMeta: { color: '#52525b', fontSize: 12 },
     mealItemRight: { alignItems: 'flex-end' },
-    mealItemCal: { color: '#22d3ee', fontSize: 20, fontWeight: '800' },
+    mealItemCal: { color: '#4CAF50', fontSize: 20, fontWeight: '800' },
     mealItemCalUnit: { color: '#52525b', fontSize: 11 },
     separator: { height: 1, backgroundColor: 'rgba(255,255,255,0.04)', marginHorizontal: 16 },
 });
