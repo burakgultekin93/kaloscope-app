@@ -1,48 +1,18 @@
 import React from 'react';
 import { Tabs, useRouter } from 'expo-router';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Home, Notebook, BarChart2, User, ScanLine } from 'lucide-react-native';
 
 const CustomScanButton = ({ children, onPress }: any) => (
     <TouchableOpacity
-        style={{
-            top: -30,
-            justifyContent: 'center',
-            alignItems: 'center',
-            ...styles.shadow
-        }}
+        style={tabStyles.scanBtnWrapper}
         onPress={onPress}
     >
-        <View
-            style={{
-                width: 70,
-                height: 70,
-                borderRadius: 35,
-                backgroundColor: '#000',
-                borderWidth: 2,
-                borderColor: '#40D3F4', // Neon Cyan
-                justifyContent: 'center',
-                alignItems: 'center',
-            }}
-        >
-            <View className="absolute inset-0 bg-cyan-500/20 blur-xl rounded-full" />
+        <View style={tabStyles.scanBtnCircle}>
             {children}
         </View>
     </TouchableOpacity>
 );
-
-const styles = StyleSheet.create({
-    shadow: {
-        shadowColor: '#40D3F4',
-        shadowOffset: {
-            width: 0,
-            height: 10,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.5,
-        elevation: 5,
-    },
-});
 
 export default function TabLayout() {
     const router = useRouter();
@@ -52,19 +22,20 @@ export default function TabLayout() {
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: {
-                    backgroundColor: '#000000',
+                    backgroundColor: '#09090b',
                     borderTopWidth: 1,
-                    borderTopColor: 'rgba(255,255,255,0.1)',
-                    height: 60,
-                    paddingBottom: 8,
+                    borderTopColor: 'rgba(255,255,255,0.06)',
+                    height: Platform.OS === 'web' ? 64 : 80,
+                    paddingBottom: Platform.OS === 'web' ? 8 : 24,
                     paddingTop: 8,
                 },
-                tabBarActiveTintColor: '#22d3ee', // Cyan-400
-                tabBarInactiveTintColor: '#6b7280', // Gray-500
+                tabBarActiveTintColor: '#22d3ee',
+                tabBarInactiveTintColor: '#52525b',
                 tabBarShowLabel: true,
                 tabBarLabelStyle: {
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: '600',
+                    letterSpacing: 0.3,
                 },
             }}
         >
@@ -82,18 +53,16 @@ export default function TabLayout() {
                     tabBarIcon: ({ color, size }) => <Notebook size={size} color={color} />,
                 }}
             />
-
-            {/* Central Scan Button */}
             <Tabs.Screen
                 name="scan"
                 options={{
                     title: '',
                     tabBarIcon: ({ focused }) => (
-                        <ScanLine size={30} color={focused ? '#40D3F4' : '#fff'} />
+                        <ScanLine size={28} color={focused ? '#22d3ee' : '#fff'} />
                     ),
                     tabBarButton: (props) => (
                         <CustomScanButton {...props} onPress={() => router.push('/camera')}>
-                            <ScanLine size={30} color="#40D3F4" />
+                            <ScanLine size={28} color="#22d3ee" />
                         </CustomScanButton>
                     ),
                 }}
@@ -104,7 +73,6 @@ export default function TabLayout() {
                     }
                 })}
             />
-
             <Tabs.Screen
                 name="stats"
                 options={{
@@ -122,3 +90,26 @@ export default function TabLayout() {
         </Tabs>
     );
 }
+
+const tabStyles = StyleSheet.create({
+    scanBtnWrapper: {
+        top: -24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#22d3ee',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    scanBtnCircle: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: '#09090b',
+        borderWidth: 2,
+        borderColor: '#22d3ee',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+});
