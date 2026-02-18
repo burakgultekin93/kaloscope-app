@@ -55,9 +55,9 @@ export default function RootLayout() {
 
     const loadLanguage = async (userId: string) => {
         try {
-            const { data } = await supabase.from('profiles').select('language').eq('id', userId).single();
-            if (data?.language) {
-                i18n.setLanguage(data.language as Language);
+            const { data } = await supabase.from('profiles').select('language').eq('id', userId).limit(1);
+            if (data && data.length > 0 && data[0].language) {
+                i18n.setLanguage(data[0].language as Language);
             }
         } catch (e) {
             console.error('Failed to load language:', e);
@@ -103,7 +103,6 @@ export default function RootLayout() {
                 <Stack.Screen name="camera" options={{ presentation: 'modal' }} />
                 <Stack.Screen name="analysis-result" />
                 <Stack.Screen name="recipe-assistant" />
-                <Stack.Screen name="+not-found" />
             </Stack>
         </ThemeProvider>
     );

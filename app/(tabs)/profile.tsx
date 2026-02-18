@@ -29,23 +29,23 @@ export default function ProfileScreen() {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             setUser(user);
-            const { data: profile } = await supabase
+            const { data: profileData, error } = await supabase
                 .from('profiles')
-                .select('*')
+                .select('*') // Changed from specific fields to '*' to ensure all profile data is loaded
                 .eq('id', user.id)
-                .single();
-            if (profile) {
-                setIsDiabetic(!!profile.is_diabetic);
-                setDietaryPrefs(profile.dietary_preferences || []);
-                setHealthFocus(profile.health_focus || []);
-                setKitchenPrefs(profile.kitchen_preferences || []);
-                setCulinaryGoals(profile.culinary_goals || []);
-                setMotivationMode(!!profile.motivation_mode);
-                setRemindWater(!!profile.remind_water);
-                setRemindFruit(!!profile.remind_fruit);
-                setRemindSnacks(!!profile.remind_snacks);
-                if (profile.language) {
-                    setLanguage(profile.language as Language);
+            if (profileData && profileData.length > 0) {
+                const data = profileData[0]; // Assuming a single profile entry for the user
+                setIsDiabetic(!!data.is_diabetic);
+                setDietaryPrefs(data.dietary_preferences || []);
+                setHealthFocus(data.health_focus || []);
+                setKitchenPrefs(data.kitchen_preferences || []);
+                setCulinaryGoals(data.culinary_goals || []);
+                setMotivationMode(!!data.motivation_mode);
+                setRemindWater(!!data.remind_water);
+                setRemindFruit(!!data.remind_fruit);
+                setRemindSnacks(!!data.remind_snacks);
+                if (data.language) {
+                    setLanguage(data.language as Language);
                 }
             }
         }

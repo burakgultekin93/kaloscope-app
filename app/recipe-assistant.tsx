@@ -28,14 +28,14 @@ export default function RecipeAssistantScreen() {
 
     useEffect(() => {
         Animated.parallel([
-            Animated.timing(fadeIn, { toValue: 1, duration: 600, useNativeDriver: true }),
-            Animated.timing(slideUp, { toValue: 0, duration: 600, useNativeDriver: true }),
+            Animated.timing(fadeIn, { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+            Animated.timing(slideUp, { toValue: 0, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
         ]).start();
 
         Animated.loop(
             Animated.sequence([
-                Animated.timing(glowPulse, { toValue: 0.35, duration: 3000, useNativeDriver: true }),
-                Animated.timing(glowPulse, { toValue: 0.15, duration: 3000, useNativeDriver: true }),
+                Animated.timing(glowPulse, { toValue: 0.35, duration: 3000, useNativeDriver: Platform.OS !== 'web' }),
+                Animated.timing(glowPulse, { toValue: 0.15, duration: 3000, useNativeDriver: Platform.OS !== 'web' }),
             ])
         ).start();
     }, []);

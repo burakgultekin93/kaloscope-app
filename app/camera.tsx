@@ -50,11 +50,11 @@ export default function CameraScreen() {
                     .from('profiles')
                     .select('is_diabetic, dietary_preferences, health_focus')
                     .eq('id', user.id)
-                    .single();
-                if (profile) {
-                    isDiabetic = !!profile.is_diabetic;
-                    dietaryPrefs = profile.dietary_preferences || [];
-                    healthFocus = profile.health_focus || [];
+                    .limit(1);
+                if (profile && profile.length > 0) {
+                    isDiabetic = !!profile[0].is_diabetic;
+                    dietaryPrefs = profile[0].dietary_preferences || [];
+                    healthFocus = profile[0].health_focus || [];
                 }
             }
 

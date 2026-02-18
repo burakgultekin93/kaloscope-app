@@ -24,14 +24,14 @@ export default function RegisterScreen() {
 
     useEffect(() => {
         Animated.parallel([
-            Animated.timing(formOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
-            Animated.timing(formTranslate, { toValue: 0, duration: 600, useNativeDriver: true }),
+            Animated.timing(formOpacity, { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+            Animated.timing(formTranslate, { toValue: 0, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
         ]).start();
 
         Animated.loop(
             Animated.sequence([
-                Animated.timing(glowPulse, { toValue: 0.35, duration: 3000, useNativeDriver: true }),
-                Animated.timing(glowPulse, { toValue: 0.15, duration: 3000, useNativeDriver: true }),
+                Animated.timing(glowPulse, { toValue: 0.35, duration: 3000, useNativeDriver: Platform.OS !== 'web' }),
+                Animated.timing(glowPulse, { toValue: 0.15, duration: 3000, useNativeDriver: Platform.OS !== 'web' }),
             ])
         ).start();
     }, []);
@@ -48,7 +48,26 @@ export default function RegisterScreen() {
             });
 
             if (error) throw error;
-            if (data.user) router.replace('/(tabs)');
+
+            if (data.user) {
+                // Create profile row
+                const { error: profileError } = await supabase.from('profiles').insert({
+                    id: data.user.id,
+                    full_name: fullName,
+                    language: 'en', // Default to EN or detect/ask
+                    motivation_mode: true,
+                    is_diabetic: false,
+                    dietary_preferences: [],
+                    health_focus: []
+                });
+
+                if (profileError) {
+                    console.error('Error creating profile:', profileError);
+                    // Continue anyway, auth worked
+                }
+
+                router.replace('/(tabs)');
+            }
         } catch (err: any) {
             setError(err.message);
         } finally {

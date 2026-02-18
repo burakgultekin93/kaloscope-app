@@ -37,12 +37,13 @@ export default function AnalysisResultScreen() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-                const { data: profile } = await supabase
+                const { data } = await supabase
                     .from('profiles')
                     .select('is_diabetic, dietary_preferences, health_focus')
                     .eq('id', user.id)
-                    .single();
-                if (profile) {
+                    .limit(1);
+                if (data && data.length > 0) {
+                    const profile = data[0];
                     setIsDiabetic(!!profile.is_diabetic);
                     setDietaryPrefs(profile.dietary_preferences || []);
                     setHealthFocus(profile.health_focus || []);

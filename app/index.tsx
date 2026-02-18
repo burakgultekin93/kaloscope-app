@@ -53,15 +53,15 @@ export default function LandingPage() {
     useEffect(() => {
         // Hero entrance animation
         Animated.parallel([
-            Animated.timing(heroOpacity, { toValue: 1, duration: 800, useNativeDriver: true }),
-            Animated.timing(heroTranslate, { toValue: 0, duration: 800, useNativeDriver: true }),
+            Animated.timing(heroOpacity, { toValue: 1, duration: 800, useNativeDriver: Platform.OS !== 'web' }),
+            Animated.timing(heroTranslate, { toValue: 0, duration: 800, useNativeDriver: Platform.OS !== 'web' }),
         ]).start();
 
         // Ambient glow pulse
         Animated.loop(
             Animated.sequence([
-                Animated.timing(glowPulse, { toValue: 0.5, duration: 3000, useNativeDriver: true }),
-                Animated.timing(glowPulse, { toValue: 0.2, duration: 3000, useNativeDriver: true }),
+                Animated.timing(glowPulse, { toValue: 0.5, duration: 3000, useNativeDriver: Platform.OS !== 'web' }),
+                Animated.timing(glowPulse, { toValue: 0.2, duration: 3000, useNativeDriver: Platform.OS !== 'web' }),
             ])
         ).start();
     }, []);

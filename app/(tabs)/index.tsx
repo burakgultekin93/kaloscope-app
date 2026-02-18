@@ -292,9 +292,9 @@ export default function HomeScreen() {
                 const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
                 setUserName(name);
 
-                supabase.from('profiles').select('motivation_mode').eq('id', user.id).single()
+                supabase.from('profiles').select('motivation_mode').eq('id', user.id).limit(1)
                     .then(({ data }) => {
-                        if (data) setMotivationMode(!!data.motivation_mode);
+                        if (data && data.length > 0) setMotivationMode(!!data[0].motivation_mode);
                     });
             }
         }).catch(() => setUserName('User'));
