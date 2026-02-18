@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AnalyzeResponse } from '../lib/openai';
+import { saveFoodLog } from '../lib/meals';
 import { supabase } from '../lib/supabase';
 import { useI18n } from '../lib/i18n';
 
@@ -64,35 +65,21 @@ export default function AnalysisResultScreen() {
         setSaveError(null);
 
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                setSaveError(lang === 'tr' ? "Giriş yapılmamış." : "Not logged in.");
-                setSaveStatus('error');
-                setSaving(false);
-                return;
-            }
-
-            const { error } = await supabase.from('meals').insert({
-                user_id: user.id,
-                name: result.foods.map(f => lang === 'tr' ? f.name_tr : f.name_en).join(', '),
+            await saveFoodLog({
+                food_name: result.foods.map(f => lang === 'tr' ? f.name_tr : f.name_en).join(', '),
                 calories: result.total_calories,
                 protein: result.total_protein,
                 carbs: result.total_carbs,
                 fat: result.total_fat,
                 fiber: result.total_fiber,
-                image_url: null,
-                date: new Date().toISOString(),
                 meal_type: (params.mealType as string) || 'snack',
                 ai_details: result,
             });
 
-            if (error) throw error;
-
             setSaveStatus('success');
-            // Optional: Redirect after delay or let user choose
         } catch (e: any) {
             console.error('Save error:', e);
-            setSaveError(e.message || "Kaydedilemedi.");
+            setSaveError(e.message === 'Not authenticated' ? (lang === 'tr' ? "Giriş yapılmamış." : "Not logged in.") : (e.message || "Kaydedilemedi."));
             setSaveStatus('error');
         } finally {
             setSaving(false);
