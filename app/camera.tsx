@@ -83,7 +83,7 @@ export default function CameraScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <TouchableOpacity onPress={() => router.push('/')} style={styles.backBtn}>
                     <Text style={styles.backBtnText}>← {t('back')}</Text>
                 </TouchableOpacity>
                 <Text style={styles.title}>{t('camera_title')}</Text>
