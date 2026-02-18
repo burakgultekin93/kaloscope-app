@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
     View, Text, SafeAreaView, StyleSheet, TouchableOpacity,
-    ScrollView, ActivityIndicator, Platform
+    ScrollView, ActivityIndicator, Platform, TextInput
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AnalyzeResponse } from '../lib/openai';
@@ -14,6 +14,14 @@ export default function AnalysisResultScreen() {
     const params = useLocalSearchParams();
     const { t, lang } = useI18n();
     const [result, setResult] = useState<AnalyzeResponse | null>(null);
+    const [foods, setFoods] = useState<any[]>([]);
+    const [totals, setTotals] = useState({
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        fiber: 0
+    });
     const [saving, setSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -26,7 +34,26 @@ export default function AnalysisResultScreen() {
     useEffect(() => {
         if (params.resultJson) {
             try {
-                setResult(JSON.parse(params.resultJson as string));
+                const parsed = JSON.parse(params.resultJson as string) as AnalyzeResponse;
+                setResult(parsed);
+                // Initialize editable foods with original values for scaling
+                setFoods(parsed.foods.map(f => ({
+                    ...f,
+                    current_grams: f.estimated_grams,
+                    original_grams: f.estimated_grams,
+                    original_calories: f.calories,
+                    original_protein: f.protein,
+                    original_carbs: f.carbs,
+                    original_fat: f.fat,
+                    original_fiber: f.fiber || 0
+                })));
+                setTotals({
+                    calories: parsed.total_calories,
+                    protein: parsed.total_protein,
+                    carbs: parsed.total_carbs,
+                    fat: parsed.total_fat,
+                    fiber: parsed.total_fiber || 0
+                });
             } catch (e) {
                 console.error('Failed to parse result', e);
             }
@@ -58,6 +85,45 @@ export default function AnalysisResultScreen() {
         }
     };
 
+    const updateFoodQuantity = (index: number, val: string) => {
+        const newGrams = parseFloat(val) || 0;
+        const newFoods = [...foods];
+        const food = newFoods[index];
+
+        // Ratio relative to original AI estimation
+        const ratio = food.original_grams > 0 ? newGrams / food.original_grams : 0;
+
+        // Scale macros (one decimal place)
+        newFoods[index] = {
+            ...food,
+            current_grams: newGrams,
+            calories: Math.round(food.original_calories * ratio),
+            protein: parseFloat((food.original_protein * ratio).toFixed(1)),
+            carbs: parseFloat((food.original_carbs * ratio).toFixed(1)),
+            fat: parseFloat((food.original_fat * ratio).toFixed(1)),
+            fiber: parseFloat((food.original_fiber * ratio).toFixed(1)),
+        };
+
+        setFoods(newFoods);
+
+        // Recalculate Totals
+        const newTotals = newFoods.reduce((acc, f) => ({
+            calories: acc.calories + f.calories,
+            protein: acc.protein + f.protein,
+            carbs: acc.carbs + f.carbs,
+            fat: acc.fat + f.fat,
+            fiber: acc.fiber + f.fiber,
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
+
+        setTotals({
+            ...newTotals,
+            protein: parseFloat(newTotals.protein.toFixed(1)),
+            carbs: parseFloat(newTotals.carbs.toFixed(1)),
+            fat: parseFloat(newTotals.fat.toFixed(1)),
+            fiber: parseFloat(newTotals.fiber.toFixed(1)),
+        });
+    };
+
     const handleSave = async () => {
         if (!result || result.foods.length === 0) return;
         setSaving(true);
@@ -66,14 +132,14 @@ export default function AnalysisResultScreen() {
 
         try {
             await saveFoodLog({
-                food_name: result.foods.map(f => lang === 'tr' ? f.name_tr : f.name_en).join(', '),
-                calories: result.total_calories,
-                protein: result.total_protein,
-                carbs: result.total_carbs,
-                fat: result.total_fat,
-                fiber: result.total_fiber,
+                food_name: foods.map(f => lang === 'tr' ? f.name_tr : f.name_en).join(', '),
+                calories: totals.calories,
+                protein: totals.protein,
+                carbs: totals.carbs,
+                fat: totals.fat,
+                fiber: totals.fiber,
                 meal_type: (params.mealType as string) || 'snack',
-                ai_details: result,
+                ai_details: { ...result, foods, totals }, // Save updated version
             });
 
             setSaveStatus('success');
@@ -92,7 +158,7 @@ export default function AnalysisResultScreen() {
         </SafeAreaView>
     );
 
-    const highCarb = isDiabetic && result.total_carbs > 30;
+    const highCarb = isDiabetic && totals.carbs > 30;
 
     return (
         <SafeAreaView style={styles.container}>
@@ -108,12 +174,12 @@ export default function AnalysisResultScreen() {
                 {/* Score Card */}
                 <View style={styles.scoreCard}>
                     <View style={styles.scoreCircle}>
-                        <Text style={styles.scoreValue}>{result.total_calories}</Text>
+                        <Text style={styles.scoreValue}>{totals.calories}</Text>
                         <Text style={styles.scoreLabel}>kcal</Text>
                     </View>
                     <View style={styles.scoreInfo}>
                         <Text style={styles.mealTitle}>
-                            {result.foods.map(f => lang === 'tr' ? f.name_tr : f.name_en).join(', ')}
+                            {foods.map(f => lang === 'tr' ? f.name_tr : f.name_en).join(', ')}
                         </Text>
                     </View>
                 </View>
@@ -121,15 +187,15 @@ export default function AnalysisResultScreen() {
                 {/* Macros */}
                 <View style={styles.macrosRow}>
                     <View style={[styles.macroItem, { backgroundColor: 'rgba(34, 211, 238, 0.1)' }]}>
-                        <Text style={[styles.macroValue, { color: '#22d3ee' }]}>{result.total_protein}g</Text>
+                        <Text style={[styles.macroValue, { color: '#22d3ee' }]}>{totals.protein}g</Text>
                         <Text style={styles.macroLabel}>Protein</Text>
                     </View>
                     <View style={[styles.macroItem, { backgroundColor: 'rgba(250, 204, 21, 0.1)' }]}>
-                        <Text style={[styles.macroValue, { color: '#facc15' }]}>{result.total_fat}g</Text>
+                        <Text style={[styles.macroValue, { color: '#facc15' }]}>{totals.fat}g</Text>
                         <Text style={styles.macroLabel}>{t('fat')}</Text>
                     </View>
                     <View style={[styles.macroItem, { backgroundColor: 'rgba(248, 113, 113, 0.1)' }]}>
-                        <Text style={[styles.macroValue, { color: '#f87171' }]}>{result.total_carbs}g</Text>
+                        <Text style={[styles.macroValue, { color: '#f87171' }]}>{totals.carbs}g</Text>
                         <Text style={styles.macroLabel}>{t('carbs')}</Text>
                     </View>
                 </View>
@@ -161,10 +227,18 @@ export default function AnalysisResultScreen() {
                 {/* Detected Items */}
                 <View style={styles.detailsCard}>
                     <Text style={styles.detailsTitle}>{t('detected_items')}</Text>
-                    {result.foods.map((food, i) => (
+                    {foods.map((food, i) => (
                         <View key={i} style={styles.foodItemRow}>
                             <Text style={styles.foodItemName}>{lang === 'tr' ? food.name_tr : food.name_en}</Text>
-                            <Text style={styles.foodItemGrams}>{food.estimated_grams}g</Text>
+                            <View style={styles.gramInputRow}>
+                                <TextInput
+                                    style={styles.gramInput}
+                                    defaultValue={String(food.current_grams)}
+                                    keyboardType="numeric"
+                                    onChangeText={(val) => updateFoodQuantity(i, val)}
+                                />
+                                <Text style={styles.gramLabel}>g</Text>
+                            </View>
                             <Text style={styles.foodItemCals}>{food.calories} kcal</Text>
                         </View>
                     ))}
@@ -241,8 +315,10 @@ const styles = StyleSheet.create({
     detailsCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 20, marginBottom: 24 },
     detailsTitle: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 16 },
     foodItemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-    foodItemName: { color: '#e4e4e7', fontSize: 14, flex: 2 },
-    foodItemGrams: { color: '#a1a1aa', fontSize: 13, flex: 1, textAlign: 'center' },
+    foodItemName: { color: '#e4e4e7', fontSize: 14, flex: 1.5 },
+    gramInputRow: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, paddingHorizontal: 8, marginHorizontal: 8 },
+    gramInput: { color: '#fff', fontSize: 14, fontWeight: '600', paddingVertical: 4, minWidth: 40, textAlign: 'right' },
+    gramLabel: { color: '#a1a1aa', fontSize: 12, marginLeft: 2 },
     foodItemCals: { color: '#22d3ee', fontSize: 14, flex: 1, textAlign: 'right', fontWeight: '600' },
 
     saveBtn: { backgroundColor: '#22d3ee', borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginBottom: 16, shadowColor: '#22d3ee', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, elevation: 4 },
