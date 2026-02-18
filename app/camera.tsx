@@ -3,7 +3,7 @@ import {
     View, Text, SafeAreaView, StyleSheet, TouchableOpacity,
     ActivityIndicator, Image, Platform
 } from 'react-native';
-import { showAlert } from '../lib/alert';
+// Removed showAlert import
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { analyzeFood } from '../lib/openai';
@@ -17,8 +17,10 @@ export default function CameraScreen() {
     const [base64Data, setBase64Data] = useState<string | null>(null);
     const [analyzing, setAnalyzing] = useState(false);
     const [mealType, setMealType] = useState('snack');
+    const [error, setError] = useState<string | null>(null);
 
     const pickImage = async () => {
+        setError(null); // Clear previous errors
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
             allowsEditing: true,
@@ -33,8 +35,9 @@ export default function CameraScreen() {
     };
 
     const handleAnalyze = async () => {
+        setError(null);
         if (!base64Data) {
-            showAlert(t('error'), t('select_photo'));
+            setError(t('select_photo_desc') || "Lütfen önce bir fotoğraf seçin.");
             return;
         }
 
@@ -68,8 +71,10 @@ export default function CameraScreen() {
                     isDiabetic: isDiabetic ? 'true' : 'false',
                 },
             });
-        } catch (error: any) {
-            showAlert(t('error'), error.message || 'Unknown error occurred');
+        } catch (err: any) {
+            console.error('Analysis Error:', err);
+            // Show generic user-friendly message, log real error
+            setError("Analiz yapılamadı. Lütfen tekrar deneyin.");
         } finally {
             setAnalyzing(false);
         }
@@ -98,6 +103,12 @@ export default function CameraScreen() {
                     )}
                 </View>
 
+                {error && (
+                    <View style={styles.errorContainer}>
+                        <Text style={styles.errorText}>⚠️ {error}</Text>
+                    </View>
+                )}
+
                 <View style={styles.actions}>
                     <TouchableOpacity style={styles.pickBtn} onPress={pickImage} disabled={analyzing}>
                         <Text style={styles.pickBtnText}>
@@ -117,7 +128,7 @@ export default function CameraScreen() {
                                     <Text style={styles.analyzeBtnText}> {t('analyzing')}</Text>
                                 </View>
                             ) : (
-                                <Text style={styles.analyzeBtnText}>{t('analyze_btn')}</Text>
+                                <Text style={styles.analyzeBtnText}>{error ? "Tekrar Dene" : t('analyze_btn')}</Text>
                             )}
                         </TouchableOpacity>
                     )}
@@ -157,4 +168,6 @@ const styles = StyleSheet.create({
     tipCard: { backgroundColor: 'rgba(76, 175, 80, 0.04)', borderWidth: 1, borderColor: 'rgba(76, 175, 80, 0.1)', borderRadius: 14, padding: 16 },
     tipTitle: { color: '#22d3ee', fontSize: 14, fontWeight: '700', marginBottom: 8 },
     tipText: { color: '#71717a', fontSize: 13, lineHeight: 22 },
+    errorContainer: { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)', borderRadius: 12, padding: 12, marginBottom: 20 },
+    errorText: { color: '#ef4444', fontSize: 14, textAlign: 'center' }
 });

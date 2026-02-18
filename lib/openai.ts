@@ -102,8 +102,9 @@ ${healthFocus.length > 0 ? `- User health focus: ${healthFocus.join(', ')}` : ''
                 ],
             }],
             generationConfig: {
-                temperature: 0.3,
-                maxOutputTokens: 1000,
+                temperature: 0.1, // Lower temperature for more deterministic JSON
+                maxOutputTokens: 2048, // Increased to prevent truncation
+                response_mime_type: "application/json", // Force JSON response
             },
         }),
     });
@@ -120,17 +121,32 @@ ${healthFocus.length > 0 ? `- User health focus: ${healthFocus.join(', ')}` : ''
         throw new Error('Gemini returned an empty response.');
     }
 
-    // Parse JSON — handle possible markdown code fences
-    let cleanContent = content.trim();
-    if (cleanContent.startsWith('```')) {
-        cleanContent = cleanContent.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    // Robust JSON parsing logic
+    let cleanContent = content;
+
+    // 1. Remove markdown code fences
+    cleanContent = cleanContent
+        .replace(/```json\s*/gi, '')
+        .replace(/```\s*/gi, '')
+        .trim();
+
+    // 2. Find JSON object boundaries
+    const jsonStart = cleanContent.indexOf('{');
+    const jsonEnd = cleanContent.lastIndexOf('}');
+
+    if (jsonStart === -1 || jsonEnd === -1) {
+        console.error('Gemini raw response:', content);
+        throw new Error('No valid JSON found in AI response');
     }
+
+    cleanContent = cleanContent.substring(jsonStart, jsonEnd + 1);
 
     let result: AnalyzeResponse;
     try {
         result = JSON.parse(cleanContent);
     } catch (e) {
-        throw new Error(`Failed to parse AI response: ${cleanContent.substring(0, 200)}`);
+        console.error('Parse error. Cleaned content:', cleanContent);
+        throw new Error(`Failed to parse AI response: ${cleanContent.substring(0, 200)}...`);
     }
 
     result.success = true;

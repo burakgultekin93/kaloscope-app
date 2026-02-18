@@ -1,25 +1,28 @@
+```javascript
 import React, { useEffect, useState } from 'react';
 import {
-    View, Text, SafeAreaView, ScrollView, StyleSheet,
-    TouchableOpacity, Platform, ActivityIndicator
+    View, Text, SafeAreaView, StyleSheet, TouchableOpacity,
+    ScrollView, ActivityIndicator, Platform
 } from 'react-native';
-import { showAlert } from '../lib/alert';
+// Removed showAlert import
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { supabase } from '../lib/supabase';
-import { saveFoodLog } from '../lib/meals';
 import { AnalyzeResponse } from '../lib/openai';
+import { supabase } from '../lib/supabase';
 import { useI18n } from '../lib/i18n';
 
 export default function AnalysisResultScreen() {
-    const params = useLocalSearchParams();
     const router = useRouter();
+    const params = useLocalSearchParams();
     const { t, lang } = useI18n();
     const [result, setResult] = useState<AnalyzeResponse | null>(null);
     const [saving, setSaving] = useState(false);
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [saveError, setSaveError] = useState<string | null>(null);
+
     const [isDiabetic, setIsDiabetic] = useState(false);
-    const [loadingProfile, setLoadingProfile] = useState(true);
     const [dietaryPrefs, setDietaryPrefs] = useState<string[]>([]);
     const [healthFocus, setHealthFocus] = useState<string[]>([]);
+    const [loadingProfile, setLoadingProfile] = useState(true);
 
     useEffect(() => {
         if (params.resultJson) {
@@ -59,124 +62,109 @@ export default function AnalysisResultScreen() {
     const handleSave = async () => {
         if (!result || result.foods.length === 0) return;
         setSaving(true);
+        setSaveStatus('idle');
+        setSaveError(null);
+
         try {
-            await saveFoodLog({
-                food_name: result.foods.map(f => lang === 'tr' ? f.name_tr : f.name_en).join(', '),
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                setSaveError("Giriş yapılmamış. Lütfen tekrar giriş yapın.");
+                setSaveStatus('error');
+                setSaving(false);
+                return;
+            }
+
+            const { error } = await supabase.from('meals').insert({
+                user_id: user.id,
+                name: result.foods.map(f => lang === 'tr' ? f.name_tr : f.name_en).join(', '),
                 calories: result.total_calories,
                 protein: result.total_protein,
                 carbs: result.total_carbs,
                 fat: result.total_fat,
-                fiber: result.total_fiber,
-                meal_type: (params.mealType as string) || 'snack',
-                ai_details: result,
+                fiber: result.total_fiber, // Added fiber back as it was in original saveFoodLog
+                image_url: null, // We are not saving image to storage for MVP to save bandwidth
+                date: new Date().toISOString(),
+                meal_type: (params.mealType as string) || 'snack', // Ensure mealType is string
+                ai_details: result, // Added ai_details back as it was in original saveFoodLog
             });
 
-            showAlert(t('success') + ' ✅', lang === 'tr' ? 'Öğün günlüğüne kaydedildi!' : 'Meal saved to your diary!', [
-                { text: lang === 'tr' ? 'Dashboard\'a Git' : 'Go to Dashboard', onPress: () => router.replace('/(tabs)') },
-            ]);
+            if (error) throw error;
+
+            setSaveStatus('success');
+            // Auto navigate back after short delay? Optional. User might want to read.
         } catch (e: any) {
-            showAlert(t('error'), e.message || 'Unknown error occurred');
+            console.error('Save error:', e);
+            setSaveError(e.message || "Kaydedilemedi.");
+            setSaveStatus('error');
         } finally {
             setSaving(false);
         }
     };
 
-    if (!result || loadingProfile) {
-        return (
-            <SafeAreaView style={styles.container}>
-                <View style={styles.loadingState}>
-                    <ActivityIndicator size="large" color="#22d3ee" />
-                    <Text style={styles.loadingText}>{t('loading')}</Text>
-                </View>
-            </SafeAreaView>
-        );
-    }
+    if (!result) return (
+        <SafeAreaView style={styles.container}>
+            <ActivityIndicator size="large" color="#22d3ee" style={{ marginTop: 50 }} />
+        </SafeAreaView>
+    );
 
-    const avgConfidence = result.foods.reduce((acc, f) => acc + f.confidence, 0) / result.foods.length;
-    const confidenceColor = avgConfidence > 0.8 ? '#22c55e' : avgConfidence > 0.5 ? '#f59e0b' : '#ef4444';
+    // The original `loadingProfile` check was here, but the instruction removed it from the `if` condition.
+    // If `loadingProfile` is true, the UI will render with placeholders or default values for profile-dependent elements.
+    // The instruction's provided UI doesn't seem to have a specific loading state for profile after initial result load.
 
-    const highCarb = isDiabetic && result.total_carbs > 30;
+    // Re-implementing the warning logic based on variables.
+    const highCarb = isDiabetic && result.total_carbs > 30; // Using original threshold from the provided file
 
     return (
         <SafeAreaView style={styles.container}>
-            <ScrollView
-                style={styles.scroll}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
-                {/* Header */}
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                        <Text style={styles.backBtnText}>← {t('back')}</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>{t('analysis_result')}</Text>
-                    <View style={{ width: 60 }} />
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                    <Text style={styles.backBtnText}>← {t('back')}</Text>
+                </TouchableOpacity>
+                <Text style={styles.title}>{t('analysis_result')}</Text>
+                <View style={{ width: 60 }} />
+            </View>
+
+            <ScrollView style={styles.content}>
+                {/* Score Card */}
+                <View style={styles.scoreCard}>
+                    <View style={styles.scoreCircle}>
+                        <Text style={styles.scoreValue}>{result.health_score}</Text>
+                        <Text style={styles.scoreLabel}>Health Score</Text>
+                    </View>
+                    <View style={styles.scoreInfo}>
+                        <Text style={styles.mealTitle}>
+                            {result.foods.map(f => lang === 'tr' ? f.name_tr : f.name_en).join(', ') || 'Unknown Meal'}
+                        </Text>
+                        <Text style={styles.calories}>{result.total_calories} kcal</Text>
+                    </View>
                 </View>
 
-                {/* Diabetic Warning Card */}
+                {/* Macros */}
+                <View style={styles.macrosRow}>
+                    <View style={[styles.macroItem, { backgroundColor: 'rgba(34, 211, 238, 0.1)' }]}>
+                        <Text style={[styles.macroValue, { color: '#22d3ee' }]}>{result.total_protein}g</Text>
+                        <Text style={styles.macroLabel}>Protein</Text>
+                    </View>
+                    <View style={[styles.macroItem, { backgroundColor: 'rgba(250, 204, 21, 0.1)' }]}>
+                        <Text style={[styles.macroValue, { color: '#facc15' }]}>{result.total_fat}g</Text>
+                        <Text style={styles.macroLabel}>Fat</Text>
+                    </View>
+                    <View style={[styles.macroItem, { backgroundColor: 'rgba(248, 113, 113, 0.1)' }]}>
+                        <Text style={[styles.macroValue, { color: '#f87171' }]}>{result.total_carbs}g</Text>
+                        <Text style={styles.macroLabel}>Carbs</Text>
+                    </View>
+                </View>
+
+                {/* Warnings (Diabetic/Allergies) */}
                 {isDiabetic && (
-                    <View style={[styles.diabeticCard, highCarb && styles.diabeticCardWarning]}>
-                        <Text style={styles.diabeticTitle}>{t('diabetic_warning_title')}</Text>
-                        <Text style={styles.diabeticDesc}>
+                    <View style={[styles.warningCard, highCarb && styles.warningCardHighCarb]}>
+                        <Text style={styles.warningTitle}>⚠️ {t('diabetic_warning_title')}</Text>
+                        <Text style={styles.warningText}>
                             {highCarb ? t('high_carb_msg') : t('low_carb_msg')}
                         </Text>
                     </View>
                 )}
 
-                {/* Health & Diet Preference Badges */}
-                {(dietaryPrefs.length > 0 || healthFocus.length > 0) && (
-                    <View style={styles.prefsContainer}>
-                        <View style={styles.prefsRow}>
-                            {dietaryPrefs.map(p => (
-                                <View key={p} style={styles.prefBadge}>
-                                    <Text style={styles.prefBadgeText}>🥗 {p}</Text>
-                                </View>
-                            ))}
-                            {healthFocus.map(f => (
-                                <View key={f} style={styles.prefBadge}>
-                                    <Text style={styles.prefBadgeText}>🎯 {f}</Text>
-                                </View>
-                            ))}
-                        </View>
-                        <Text style={styles.prefsHint}>{t('ai_insight_desc')}</Text>
-                    </View>
-                )}
-
-                {/* Result Card */}
-                <View style={styles.resultCard}>
-                    <View style={styles.resultHeader}>
-                        <Text style={styles.checkIcon}>✅</Text>
-                        <Text style={styles.resultTitle}>{t('analysis_complete')}</Text>
-                    </View>
-
-                    <Text style={styles.foodName}>
-                        {result.foods.map(f => lang === 'tr' ? f.name_tr : f.name_en).join(', ')}
-                    </Text>
-
-                    <View style={styles.confidenceBadge}>
-                        <View style={[styles.confidenceDot, { backgroundColor: confidenceColor }]} />
-                        <Text style={[styles.confidenceText, { color: confidenceColor }]}>
-                            {Math.round(avgConfidence * 100)}% {t('confidence')}
-                        </Text>
-                    </View>
-                </View>
-
-                {/* Macro Grid */}
-                <View style={styles.macroGrid}>
-                    <View style={styles.macroCard}>
-                        <Text style={styles.macroEmoji}>🔥</Text>
-                        <Text style={[styles.macroValue, { color: '#22d3ee' }]}>{result.total_calories}</Text>
-                        <Text style={styles.macroLabel}>{t('calories')}</Text>
-                    </View>
-                    <View style={styles.macroCard}>
-                        <Text style={styles.macroEmoji}>🥩</Text>
-                        <Text style={[styles.macroValue, { color: '#22d3ee' }]}>{result.total_protein}g</Text>
-                        <Text style={styles.macroLabel}>{t('protein')}</Text>
-                    </View>
-                    <View style={[styles.macroCard, highCarb && styles.macroCardWarning]}>
-                        <Text style={styles.macroEmoji}>🍞</Text>
-                        <Text style={[styles.macroValue, { color: highCarb ? '#ef4444' : '#3b82f6' }]}>{result.total_carbs}g</Text>
-                        <Text style={styles.macroLabel}>{t('carbs')}</Text>
                     </View>
                     <View style={styles.macroCard}>
                         <Text style={styles.macroEmoji}>🧈</Text>
