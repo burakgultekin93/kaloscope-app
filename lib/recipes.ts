@@ -109,7 +109,8 @@ ${ingredients?.length ? `- User ingredients: ${ingredients.join(', ')}` : '- Sug
             contents: [{ parts }],
             generationConfig: {
                 temperature: 0.7,
-                maxOutputTokens: 2000,
+                maxOutputTokens: 4096,
+                responseMimeType: "application/json",
             },
         }),
     });

@@ -1,5 +1,5 @@
 /**
- * AI Food Analysis using Google Gemini 1.5 Flash (FREE)
+ * AI Food Analysis using Google Gemini 2.5 Flash (FREE)
  * Calls Gemini API directly from the client using EXPO_PUBLIC_GEMINI_API_KEY
  */
 
@@ -33,7 +33,7 @@ const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 /**
- * Analyze a food image using Gemini 1.5 Flash Vision
+ * Analyze a food image using Gemini 2.5 Flash Vision
  */
 export async function analyzeFood(
     base64Image: string,
@@ -47,15 +47,15 @@ export async function analyzeFood(
 
     const startTime = Date.now();
 
-    const prompt = `You are a professional nutritionist AI. Analyze the food in this image and return a JSON response.
+    const prompt = `You are a professional nutritionist AI. Analyze the food in this image.
 
-Your response MUST be ONLY valid JSON (no markdown, no code fences, no extra text) with this exact structure:
+Return ONLY a JSON object (no markdown, no explanation, no code fences) with this structure:
 {
   "success": true,
   "foods": [
     {
-      "name_tr": "Turkish name of the food",
-      "name_en": "English name of the food",
+      "name_tr": "Yemek adı",
+      "name_en": "Food name",
       "estimated_grams": 150,
       "confidence": 0.85,
       "calories": 250,
@@ -71,20 +71,20 @@ Your response MUST be ONLY valid JSON (no markdown, no code fences, no extra tex
   "total_fat": 8.0,
   "total_fiber": 3.0,
   "health_score": 75,
-  "insight": "A brief nutritional insight about this meal"
+  "insight": "Kısa beslenme değerlendirmesi"
 }
 
 Rules:
 - Identify ALL visible food items separately
-- Estimate portions in grams realistically
-- Calculate macros per item accurately
-- health_score is 0-100 (100 = very healthy)
-- confidence is 0-1 (1 = very confident)
+- Estimate portions in grams
+- health_score: 0-100
+- confidence: 0-1
 - Provide insight in Turkish
-- Meal type context: ${mealType}
-${dietaryPreferences.length > 0 ? `- User dietary preferences: ${dietaryPreferences.join(', ')}` : ''}
-${healthFocus.length > 0 ? `- User health focus: ${healthFocus.join(', ')}` : ''}
-- Return ONLY valid JSON`;
+- Meal type: ${mealType}
+${dietaryPreferences.length > 0 ? `- Dietary preferences: ${dietaryPreferences.join(', ')}` : ''}
+${healthFocus.length > 0 ? `- Health focus: ${healthFocus.join(', ')}` : ''}`;
+
+    console.log('[AI] Sending request to Gemini API...');
 
     const response = await fetch(GEMINI_URL, {
         method: 'POST',
@@ -102,29 +102,48 @@ ${healthFocus.length > 0 ? `- User health focus: ${healthFocus.join(', ')}` : ''
                 ],
             }],
             generationConfig: {
-                temperature: 0.1, // Lower temperature for more deterministic JSON
-                maxOutputTokens: 2048, // Increased to prevent truncation
-                response_mime_type: "application/json", // Force JSON response
+                temperature: 0.1,
+                maxOutputTokens: 8192,
+                responseMimeType: "application/json",
             },
         }),
     });
 
     if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`Gemini API error (${response.status}): ${errorBody}`);
+        console.error('[AI] API Error:', response.status, errorBody.substring(0, 500));
+        throw new Error(`AI servisi şu anda kullanılamıyor (${response.status}). Lütfen tekrar deneyin.`);
     }
 
     const data = await response.json();
+
+    // Check for truncation (finishReason === 'MAX_TOKENS')
+    const finishReason = data.candidates?.[0]?.finishReason;
+    if (finishReason === 'MAX_TOKENS') {
+        console.error('[AI] Response was truncated due to token limit');
+        throw new Error('AI yanıtı çok uzun oldu. Lütfen daha basit bir fotoğraf deneyin.');
+    }
+
+    if (finishReason === 'SAFETY') {
+        console.error('[AI] Response was blocked by safety filters');
+        throw new Error('AI bu görseli analiz edemedi. Lütfen farklı bir fotoğraf deneyin.');
+    }
+
     const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!content) {
-        throw new Error('Gemini returned an empty response.');
+        console.error('[AI] Empty response. Full API data:', JSON.stringify(data).substring(0, 1000));
+        throw new Error('AI boş yanıt döndü. Lütfen tekrar deneyin.');
     }
 
-    // Robust JSON parsing logic
+    console.log('[AI] Raw response length:', content.length);
+    console.log('[AI] Raw response preview:', content.substring(0, 300));
+    console.log('[AI] Finish reason:', finishReason);
+
+    // Robust JSON parsing
     let cleanContent = content;
 
-    // 1. Remove markdown code fences
+    // 1. Remove markdown code fences if present
     cleanContent = cleanContent
         .replace(/```json\s*/gi, '')
         .replace(/```\s*/gi, '')
@@ -135,22 +154,35 @@ ${healthFocus.length > 0 ? `- User health focus: ${healthFocus.join(', ')}` : ''
     const jsonEnd = cleanContent.lastIndexOf('}');
 
     if (jsonStart === -1 || jsonEnd === -1) {
-        console.error('Gemini raw response:', content);
-        throw new Error('No valid JSON found in AI response');
+        console.error('[AI] No JSON found in response:', content.substring(0, 500));
+        throw new Error('AI yanıtında JSON bulunamadı. Lütfen tekrar deneyin.');
     }
 
     cleanContent = cleanContent.substring(jsonStart, jsonEnd + 1);
 
+    // 3. Try to fix common JSON issues
+    // Remove trailing commas before closing braces/brackets
+    cleanContent = cleanContent.replace(/,\s*([}\]])/g, '$1');
+
     let result: AnalyzeResponse;
     try {
         result = JSON.parse(cleanContent);
-    } catch (e) {
-        console.error('Parse error. Cleaned content:', cleanContent);
-        throw new Error(`Failed to parse AI response: ${cleanContent.substring(0, 200)}...`);
+    } catch (e: any) {
+        console.error('[AI] JSON Parse error:', e.message);
+        console.error('[AI] Cleaned content:', cleanContent.substring(0, 500));
+
+        // Check if it looks like truncated JSON
+        if (!cleanContent.endsWith('}')) {
+            throw new Error('AI yanıtı eksik geldi. Lütfen tekrar deneyin.');
+        }
+
+        throw new Error('AI yanıtı işlenemedi. Lütfen tekrar deneyin.');
     }
 
     result.success = true;
     result.processing_time_ms = Date.now() - startTime;
+
+    console.log('[AI] Successfully parsed. Foods detected:', result.foods?.length || 0);
 
     return result;
 }
