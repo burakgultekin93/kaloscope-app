@@ -92,14 +92,16 @@ export async function getTodayTotals(): Promise<{ calories: number; protein: num
     const userId = userData?.user?.id;
     if (!userId) return { calories: 0, protein: 0, carbs: 0, fat: 0, count: 0 };
 
-    const todayDate = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
     const { data, error } = await supabase
         .from('food_logs')
         .select('calories, protein, carbs, fat')
         .eq('user_id', userId)
-        .gte('created_at', `${todayDate}T00:00:00`)
-        .lte('created_at', `${todayDate}T23:59:59`);
+        .gte('created_at', startOfToday.toISOString())
+        .lt('created_at', endOfToday.toISOString());
 
     if (error || !data) return { calories: 0, protein: 0, carbs: 0, fat: 0, count: 0 };
 
@@ -131,7 +133,10 @@ export async function getStreak(): Promise<number> {
 
     if (error || !data || data.length === 0) return 0;
 
-    const uniqueDates = [...new Set(data.map(m => m.created_at.split('T')[0]))].sort().reverse();
+    const uniqueDates = [...new Set(data.map(m => {
+        const d = new Date(m.created_at);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }))].sort().reverse();
 
     let streak = 0;
     const today = new Date();
@@ -139,7 +144,7 @@ export async function getStreak(): Promise<number> {
     for (let i = 0; i < 90; i++) {
         const checkDate = new Date(today);
         checkDate.setDate(checkDate.getDate() - i);
-        const dateStr = checkDate.toISOString().split('T')[0];
+        const dateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
 
         if (uniqueDates.includes(dateStr)) {
             streak++;
@@ -180,14 +185,16 @@ export async function getTodayWater(): Promise<number> {
     const userId = userData?.user?.id;
     if (!userId) return 0;
 
-    const todayDate = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
 
     const { data, error } = await supabase
         .from('water_logs')
         .select('amount_ml')
         .eq('user_id', userId)
-        .gte('created_at', `${todayDate}T00:00:00`)
-        .lte('created_at', `${todayDate}T23:59:59`);
+        .gte('created_at', startOfToday.toISOString())
+        .lt('created_at', endOfToday.toISOString());
 
     if (error || !data) return 0;
 
