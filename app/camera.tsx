@@ -74,7 +74,7 @@ export default function CameraScreen() {
         } catch (err: any) {
             console.error('Analysis Error:', err);
             // Show generic user-friendly message, log real error
-            setError("Analiz yapılamadı. Lütfen tekrar deneyin.");
+            setError(err.message || "Analiz yapılamadı. Lütfen tekrar deneyin.");
         } finally {
             setAnalyzing(false);
         }

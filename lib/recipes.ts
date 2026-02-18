@@ -23,12 +23,11 @@ export interface SuggestRecipeResponse {
     ingredients_detected?: string[];
 }
 
-const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
-
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY || '';
+const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
 /**
- * Suggest recipes based on ingredients and user profile using Gemini
+ * Suggest recipes based on ingredients and user profile using OpenAI GPT-4o
  */
 export async function suggestRecipes(params: {
     ingredients?: string[];
@@ -36,8 +35,8 @@ export async function suggestRecipes(params: {
     meal_type?: string;
     profile?: any;
 }): Promise<SuggestRecipeResponse> {
-    if (!GEMINI_API_KEY) {
-        throw new Error('Gemini API key is not configured. Add EXPO_PUBLIC_GEMINI_API_KEY to your environment.');
+    if (!OPENAI_API_KEY) {
+        throw new Error('OpenAI API key is not configured. Add EXPO_PUBLIC_OPENAI_API_KEY to your environment.');
     }
 
     const { ingredients, image_base64, meal_type, profile } = params;
@@ -53,11 +52,9 @@ export async function suggestRecipes(params: {
         : '';
     const isDiabetic = profile?.is_diabetic ? 'User is diabetic - suggest low-carb recipes.' : '';
 
-    const prompt = `You are a creative chef AI. Suggest 3 recipes based on the user's input.
-
-Your response MUST be ONLY valid JSON (no markdown, no code fences, no extra text) with this structure:
+    const systemPrompt = `You are a creative chef AI. Suggest 3 recipes based on the user's input.
+Your response MUST be ONLY valid JSON with this structure:
 {
-  "success": true,
   "recipes": [
     {
       "title": "Recipe Name",
@@ -82,63 +79,69 @@ Rules:
 - prep_time in minutes
 - difficulty: Easy/Medium/Hard
 - suitability_score: 0-100
-- Give Turkish recipe names and descriptions
-- ${isDiabetic}
-- ${dietaryInfo}
-- ${healthInfo}
-- ${kitchenInfo}
-- Meal type: ${meal_type || 'any'}
-${ingredients?.length ? `- User ingredients: ${ingredients.join(', ')}` : '- Suggest popular healthy recipes'}
-- Return ONLY valid JSON`;
+- Give Turkish recipe names and descriptions`;
 
-    const parts: any[] = [{ text: prompt }];
+    const userPrompt = `${isDiabetic}
+${dietaryInfo}
+${healthInfo}
+${kitchenInfo}
+- Meal type: ${meal_type || 'any'}
+${ingredients?.length ? `- User ingredients: ${ingredients.join(', ')}` : '- Suggest popular healthy recipes'}`;
+
+    const messages: any[] = [
+        { role: "system", content: systemPrompt }
+    ];
+
+    const userContent: any[] = [
+        { type: "text", text: userPrompt }
+    ];
 
     if (image_base64) {
-        parts.push({
-            inline_data: {
-                mime_type: 'image/jpeg',
-                data: image_base64,
-            },
+        userContent.push({
+            type: "image_url",
+            image_url: {
+                url: `data:image/jpeg;base64,${image_base64}`,
+                detail: "high"
+            }
         });
     }
 
-    const response = await fetch(GEMINI_URL, {
+    messages.push({ role: "user", content: userContent });
+
+    const response = await fetch(OPENAI_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`
+        },
         body: JSON.stringify({
-            contents: [{ parts }],
-            generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 4096,
-                responseMimeType: "application/json",
-            },
+            model: "gpt-4o",
+            messages: messages,
+            response_format: { type: "json_object" },
+            max_tokens: 4096,
+            temperature: 0.7,
         }),
     });
 
     if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`Gemini API error (${response.status}): ${errorBody}`);
+        throw new Error(`OpenAI API error (${response.status}): ${errorBody}`);
     }
 
     const data = await response.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
-        throw new Error('Gemini returned an empty response.');
-    }
-
-    let cleanContent = content.trim();
-    if (cleanContent.startsWith('```')) {
-        cleanContent = cleanContent.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+        throw new Error('OpenAI returned an empty response.');
     }
 
     let result: SuggestRecipeResponse;
     try {
-        result = JSON.parse(cleanContent);
+        result = JSON.parse(content);
+        result.success = true;
     } catch (e) {
-        throw new Error(`Failed to parse AI response: ${cleanContent.substring(0, 200)}`);
+        throw new Error(`Failed to parse AI response: ${content.substring(0, 200)}`);
     }
 
-    result.success = true;
     return result;
 }
