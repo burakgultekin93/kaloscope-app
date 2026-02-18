@@ -26,6 +26,7 @@
     },
     "web": {
       "bundler": "metro",
+      "output": "static",
       "title": "CalorieAI",
       "favicon": "./assets/favicon.png"
     }
