@@ -42,11 +42,24 @@ export async function saveFoodLog(data: FoodLogData): Promise<FoodLogRow> {
             ai_details: data.ai_details || null,
             serving_info: data.serving_info || null
         })
-        .select()
-        .single();
+        .select();
 
-    if (error) throw error;
-    return row as FoodLogRow;
+    if (error) {
+        console.error('[Supabase Save Error]:', error);
+        throw error;
+    }
+
+    if (!row || row.length === 0) {
+        // This can happen if RLS allows INSERT but denies SELECT
+        return {
+            ...data,
+            id: 'local-' + Date.now(),
+            user_id: userId,
+            created_at: new Date().toISOString()
+        } as FoodLogRow;
+    }
+
+    return row[0] as FoodLogRow;
 }
 
 /**

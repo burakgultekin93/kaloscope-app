@@ -144,8 +144,19 @@ export default function AnalysisResultScreen() {
 
             setSaveStatus('success');
         } catch (e: any) {
-            console.error('Save error:', e);
-            setSaveError(e.message === 'Not authenticated' ? (lang === 'tr' ? "Giriş yapılmamış." : "Not logged in.") : (e.message || "Kaydedilemedi."));
+            console.error('Save error detailed:', e);
+            const errorMsg = e.message || "Kaydedilemedi.";
+            const hint = e.code ? ` (Hata Kodu: ${e.code})` : "";
+
+            if (e.message === 'Not authenticated') {
+                setSaveError(lang === 'tr' ? "Giriş yapılmamış." : "Not logged in.");
+            } else if (e.code === '42P01') {
+                setSaveError(lang === 'tr' ? "Hata: 'food_logs' tablosu bulunamadı. Lütfen SQL scriptini çalıştırın." : "Error: 'food_logs' table not found. Please run the SQL script.");
+            } else if (e.code === '42501') {
+                setSaveError(lang === 'tr' ? "Hata: Kayıt izni yok (RLS). Lütfen SQL politikalarını kontrol edin." : "Error: Permission denied (RLS). Please check SQL policies.");
+            } else {
+                setSaveError(`${errorMsg}${hint}`);
+            }
             setSaveStatus('error');
         } finally {
             setSaving(false);
