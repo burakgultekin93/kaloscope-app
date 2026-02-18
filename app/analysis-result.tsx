@@ -1,10 +1,8 @@
-```javascript
 import React, { useEffect, useState } from 'react';
 import {
     View, Text, SafeAreaView, StyleSheet, TouchableOpacity,
     ScrollView, ActivityIndicator, Platform
 } from 'react-native';
-// Removed showAlert import
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AnalyzeResponse } from '../lib/openai';
 import { supabase } from '../lib/supabase';
@@ -68,7 +66,7 @@ export default function AnalysisResultScreen() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                setSaveError("Giriş yapılmamış. Lütfen tekrar giriş yapın.");
+                setSaveError(lang === 'tr' ? "Giriş yapılmamış." : "Not logged in.");
                 setSaveStatus('error');
                 setSaving(false);
                 return;
@@ -81,17 +79,17 @@ export default function AnalysisResultScreen() {
                 protein: result.total_protein,
                 carbs: result.total_carbs,
                 fat: result.total_fat,
-                fiber: result.total_fiber, // Added fiber back as it was in original saveFoodLog
-                image_url: null, // We are not saving image to storage for MVP to save bandwidth
+                fiber: result.total_fiber,
+                image_url: null,
                 date: new Date().toISOString(),
-                meal_type: (params.mealType as string) || 'snack', // Ensure mealType is string
-                ai_details: result, // Added ai_details back as it was in original saveFoodLog
+                meal_type: (params.mealType as string) || 'snack',
+                ai_details: result,
             });
 
             if (error) throw error;
 
             setSaveStatus('success');
-            // Auto navigate back after short delay? Optional. User might want to read.
+            // Optional: Redirect after delay or let user choose
         } catch (e: any) {
             console.error('Save error:', e);
             setSaveError(e.message || "Kaydedilemedi.");
@@ -107,12 +105,7 @@ export default function AnalysisResultScreen() {
         </SafeAreaView>
     );
 
-    // The original `loadingProfile` check was here, but the instruction removed it from the `if` condition.
-    // If `loadingProfile` is true, the UI will render with placeholders or default values for profile-dependent elements.
-    // The instruction's provided UI doesn't seem to have a specific loading state for profile after initial result load.
-
-    // Re-implementing the warning logic based on variables.
-    const highCarb = isDiabetic && result.total_carbs > 30; // Using original threshold from the provided file
+    const highCarb = isDiabetic && result.total_carbs > 30;
 
     return (
         <SafeAreaView style={styles.container}>
@@ -124,18 +117,17 @@ export default function AnalysisResultScreen() {
                 <View style={{ width: 60 }} />
             </View>
 
-            <ScrollView style={styles.content}>
+            <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
                 {/* Score Card */}
                 <View style={styles.scoreCard}>
                     <View style={styles.scoreCircle}>
-                        <Text style={styles.scoreValue}>{result.health_score}</Text>
-                        <Text style={styles.scoreLabel}>Health Score</Text>
+                        <Text style={styles.scoreValue}>{result.total_calories}</Text>
+                        <Text style={styles.scoreLabel}>kcal</Text>
                     </View>
                     <View style={styles.scoreInfo}>
                         <Text style={styles.mealTitle}>
-                            {result.foods.map(f => lang === 'tr' ? f.name_tr : f.name_en).join(', ') || 'Unknown Meal'}
+                            {result.foods.map(f => lang === 'tr' ? f.name_tr : f.name_en).join(', ')}
                         </Text>
-                        <Text style={styles.calories}>{result.total_calories} kcal</Text>
                     </View>
                 </View>
 
@@ -147,31 +139,23 @@ export default function AnalysisResultScreen() {
                     </View>
                     <View style={[styles.macroItem, { backgroundColor: 'rgba(250, 204, 21, 0.1)' }]}>
                         <Text style={[styles.macroValue, { color: '#facc15' }]}>{result.total_fat}g</Text>
-                        <Text style={styles.macroLabel}>Fat</Text>
+                        <Text style={styles.macroLabel}>{t('fat')}</Text>
                     </View>
                     <View style={[styles.macroItem, { backgroundColor: 'rgba(248, 113, 113, 0.1)' }]}>
                         <Text style={[styles.macroValue, { color: '#f87171' }]}>{result.total_carbs}g</Text>
-                        <Text style={styles.macroLabel}>Carbs</Text>
+                        <Text style={styles.macroLabel}>{t('carbs')}</Text>
                     </View>
                 </View>
 
-                {/* Warnings (Diabetic/Allergies) */}
+                {/* Warnings (Diabetic) */}
                 {isDiabetic && (
                     <View style={[styles.warningCard, highCarb && styles.warningCardHighCarb]}>
-                        <Text style={styles.warningTitle}>⚠️ {t('diabetic_warning_title')}</Text>
+                        <Text style={styles.warningTitle}>⚠️ {t('diabetic_warning_title') || 'Diabetic Warning'}</Text>
                         <Text style={styles.warningText}>
-                            {highCarb ? t('high_carb_msg') : t('low_carb_msg')}
+                            {highCarb ? (t('high_carb_msg') || 'High carbs detected.') : (t('low_carb_msg') || 'Carbs are within safe limits.')}
                         </Text>
                     </View>
                 )}
-
-                    </View>
-                    <View style={styles.macroCard}>
-                        <Text style={styles.macroEmoji}>🧈</Text>
-                        <Text style={[styles.macroValue, { color: '#8b5cf6' }]}>{result.total_fat}g</Text>
-                        <Text style={styles.macroLabel}>{t('fat')}</Text>
-                    </View>
-                </View>
 
                 {/* AI Insight */}
                 {result.insight && (
@@ -187,7 +171,7 @@ export default function AnalysisResultScreen() {
                     </View>
                 )}
 
-                {/* Individual Foods */}
+                {/* Detected Items */}
                 <View style={styles.detailsCard}>
                     <Text style={styles.detailsTitle}>{t('detected_items')}</Text>
                     {result.foods.map((food, i) => (
@@ -201,19 +185,27 @@ export default function AnalysisResultScreen() {
 
                 {/* Save Button */}
                 <TouchableOpacity
-                    style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+                    style={[styles.saveBtn, (saving || saveStatus === 'success') && styles.saveBtnDisabled, saveStatus === 'success' && styles.saveBtnSuccess]}
                     onPress={handleSave}
-                    disabled={saving}
+                    disabled={saving || saveStatus === 'success'}
                 >
                     {saving ? (
                         <View style={styles.loadingRow}>
                             <ActivityIndicator size="small" color="#000" />
-                            <Text style={styles.saveBtnText}> {t('loading')}</Text>
+                            <Text style={styles.saveBtnText}> {t('loading')}...</Text>
                         </View>
+                    ) : saveStatus === 'success' ? (
+                        <Text style={styles.saveBtnText}>✅ {lang === 'tr' ? 'Kaydedildi' : 'Saved'}</Text>
                     ) : (
                         <Text style={styles.saveBtnText}>{t('save_diary')}</Text>
                     )}
                 </TouchableOpacity>
+
+                {saveError && (
+                    <View style={styles.errorContainer}>
+                        <Text style={styles.errorText}>{saveError}</Text>
+                    </View>
+                )}
 
                 <TouchableOpacity style={styles.discardBtn} onPress={() => router.back()}>
                     <Text style={styles.discardBtnText}>{t('discard_scan')}</Text>
@@ -227,53 +219,54 @@ export default function AnalysisResultScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#09090b' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 },
+    backBtn: { padding: 8 },
+    backBtnText: { color: '#22d3ee', fontSize: 16 },
+    title: { color: '#fff', fontSize: 18, fontWeight: '600' },
+
     scroll: { flex: 1 },
-    scrollContent: { paddingHorizontal: 20, paddingTop: Platform.OS === 'web' ? 20 : 8, maxWidth: 500, width: '100%', alignSelf: 'center' },
-    loadingState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    loadingText: { color: '#71717a', marginTop: 12, fontSize: 14 },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-    backBtn: { paddingVertical: 8, paddingHorizontal: 4 },
-    backBtnText: { color: '#71717a', fontSize: 14, fontWeight: '500' },
-    headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-    prefsContainer: { marginBottom: 20 },
-    prefsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-    prefBadge: { backgroundColor: 'rgba(34, 211, 238, 0.1)', borderWidth: 1, borderColor: 'rgba(34, 211, 238, 0.2)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-    prefBadgeText: { color: '#22d3ee', fontSize: 12, fontWeight: '600' },
-    prefsHint: { color: '#52525b', fontSize: 11, fontStyle: 'italic' },
-    diabeticCard: { backgroundColor: 'rgba(34, 211, 238, 0.05)', borderWidth: 1, borderColor: 'rgba(34, 211, 238, 0.2)', borderRadius: 16, padding: 16, marginBottom: 20 },
-    diabeticCardWarning: { backgroundColor: 'rgba(239, 68, 68, 0.05)', borderColor: 'rgba(239, 68, 68, 0.3)' },
-    diabeticTitle: { color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: 4 },
-    diabeticDesc: { color: '#a1a1aa', fontSize: 12, lineHeight: 18 },
-    resultCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(34, 211, 238, 0.2)', borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 16 },
-    resultHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-    checkIcon: { fontSize: 20 },
-    resultTitle: { color: '#22d3ee', fontSize: 14, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
-    foodName: { color: '#fff', fontSize: 26, fontWeight: '800', textAlign: 'center', marginBottom: 12, letterSpacing: -0.5 },
-    confidenceBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    confidenceDot: { width: 8, height: 8, borderRadius: 4 },
-    confidenceText: { fontSize: 13, fontWeight: '600', textTransform: 'capitalize' },
-    macroGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-    macroCard: { flex: 1, minWidth: '45%', backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 20, alignItems: 'center' },
-    macroCardWarning: { borderColor: 'rgba(239, 68, 68, 0.3)' },
-    macroEmoji: { fontSize: 24, marginBottom: 8 },
-    macroValue: { fontSize: 28, fontWeight: '800' },
-    macroLabel: { color: '#52525b', fontSize: 12, marginTop: 4, fontWeight: '500' },
-    insightCard: { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: 20, marginBottom: 16 },
-    insightTitle: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 10 },
-    insightText: { color: '#a1a1aa', fontSize: 13, lineHeight: 22, marginBottom: 14 },
-    healthScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    healthScoreLabel: { color: '#71717a', fontSize: 13 },
-    healthScoreValue: { fontSize: 16, fontWeight: '800' },
-    detailsCard: { backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 16, marginBottom: 24 },
-    detailsTitle: { color: '#a1a1aa', fontSize: 14, fontWeight: '600', marginBottom: 12 },
-    foodItemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
-    foodItemName: { color: '#fff', fontSize: 14, flex: 2 },
-    foodItemGrams: { color: '#71717a', fontSize: 13, flex: 1, textAlign: 'center' },
+    scrollContent: { paddingHorizontal: 20, paddingBottom: 40, paddingTop: 10 },
+
+    scoreCard: { alignItems: 'center', marginBottom: 24 },
+    scoreCircle: { width: 120, height: 120, borderRadius: 60, borderWidth: 4, borderColor: '#22d3ee', justifyContent: 'center', alignItems: 'center', marginBottom: 12, backgroundColor: 'rgba(34, 211, 238, 0.05)' },
+    scoreValue: { color: '#fff', fontSize: 32, fontWeight: '800' },
+    scoreLabel: { color: '#a1a1aa', fontSize: 14, fontWeight: '500' },
+    scoreInfo: { paddingHorizontal: 20 },
+    mealTitle: { color: '#fff', fontSize: 18, fontWeight: '600', textAlign: 'center' },
+
+    macrosRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, gap: 10 },
+    macroItem: { flex: 1, borderRadius: 16, padding: 12, alignItems: 'center' },
+    macroValue: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
+    macroLabel: { color: '#d4d4d8', fontSize: 12 },
+
+    warningCard: { backgroundColor: 'rgba(250, 204, 21, 0.1)', padding: 16, borderRadius: 16, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(250, 204, 21, 0.2)' },
+    warningCardHighCarb: { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.2)' },
+    warningTitle: { color: '#e4e4e7', fontSize: 15, fontWeight: '700', marginBottom: 4 },
+    warningText: { color: '#d4d4d8', fontSize: 13, lineHeight: 18 },
+
+    insightCard: { backgroundColor: 'rgba(255,255,255,0.03)', padding: 20, borderRadius: 20, marginBottom: 24, borderLeftWidth: 3, borderLeftColor: '#22d3ee' },
+    insightTitle: { color: '#22d3ee', fontSize: 15, fontWeight: '700', marginBottom: 8 },
+    insightText: { color: '#e4e4e7', fontSize: 14, lineHeight: 22 },
+    healthScoreRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
+    healthScoreLabel: { color: '#a1a1aa', fontSize: 13, marginRight: 8 },
+    healthScoreValue: { fontSize: 14, fontWeight: '700' },
+
+    detailsCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 20, marginBottom: 24 },
+    detailsTitle: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 16 },
+    foodItemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+    foodItemName: { color: '#e4e4e7', fontSize: 14, flex: 2 },
+    foodItemGrams: { color: '#a1a1aa', fontSize: 13, flex: 1, textAlign: 'center' },
     foodItemCals: { color: '#22d3ee', fontSize: 14, flex: 1, textAlign: 'right', fontWeight: '600' },
-    saveBtn: { backgroundColor: '#22d3ee', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 12, shadowColor: '#22d3ee', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 },
+
+    saveBtn: { backgroundColor: '#22d3ee', borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginBottom: 16, shadowColor: '#22d3ee', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, elevation: 4 },
+    saveBtnSuccess: { backgroundColor: '#4ade80' },
     saveBtnDisabled: { opacity: 0.7 },
     saveBtnText: { color: '#000', fontSize: 16, fontWeight: '700' },
     loadingRow: { flexDirection: 'row', alignItems: 'center' },
-    discardBtn: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-    discardBtnText: { color: '#52525b', fontSize: 14, fontWeight: '500' },
+
+    errorContainer: { marginBottom: 16, backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: 12, borderRadius: 12 },
+    errorText: { color: '#fca5a5', textAlign: 'center', fontSize: 14 },
+
+    discardBtn: { paddingVertical: 14, alignItems: 'center' },
+    discardBtnText: { color: '#71717a', fontSize: 14, fontWeight: '500' },
 });

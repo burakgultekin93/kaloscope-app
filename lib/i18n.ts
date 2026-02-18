@@ -11,6 +11,10 @@ const translations = {
         error: "Hata",
         success: "Başarılı",
         loading: "Yükleniyor...",
+        or: "veya",
+        tap_to_upload: "Yüklemek için dokun",
+        suggest_recipes: "Tarif Öner",
+        results: "Sonuçlar",
 
         // Tab Labels
         tab_home: "Ana Sayfa",
@@ -133,6 +137,10 @@ const translations = {
         error: "Error",
         success: "Success",
         loading: "Loading...",
+        or: "or",
+        tap_to_upload: "Tap to upload",
+        suggest_recipes: "Suggest Recipes",
+        results: "Results",
 
         // Tab Labels
         tab_home: "Home",

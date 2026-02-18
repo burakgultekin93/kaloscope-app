@@ -4,7 +4,6 @@ import {
     ActivityIndicator, Image, Platform, ScrollView, TextInput,
     Animated, Dimensions
 } from 'react-native';
-import { showAlert } from '../lib/alert';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { suggestRecipes, Recipe } from '../lib/recipes';
@@ -20,6 +19,7 @@ export default function RecipeAssistantScreen() {
     const [analyzing, setAnalyzing] = useState(false);
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [manualIngredients, setManualIngredients] = useState('');
+    const [error, setError] = useState<string | null>(null);
 
     // Animations
     const fadeIn = useRef(new Animated.Value(0)).current;
@@ -41,6 +41,7 @@ export default function RecipeAssistantScreen() {
     }, []);
 
     const pickImage = async () => {
+        setError(null);
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
             allowsEditing: true,
@@ -56,8 +57,9 @@ export default function RecipeAssistantScreen() {
     };
 
     const handleSuggest = async () => {
+        setError(null);
         if (!base64Data && !manualIngredients) {
-            showAlert(t('error'), lang === 'tr' ? 'Lütfen bir fotoğraf seçin veya malzemeleri yazın.' : 'Please select a photo or type ingredients.');
+            setError(lang === 'tr' ? 'Lütfen bir fotoğraf seçin veya malzemeleri yazın.' : 'Please select a photo or type ingredients.');
             return;
         }
 
@@ -72,10 +74,10 @@ export default function RecipeAssistantScreen() {
             if (res.success) {
                 setRecipes(res.recipes);
             } else {
-                showAlert(t('error'), lang === 'tr' ? 'Tarif önerileri alınamadı.' : 'Could not fetch recipe suggestions.');
+                setError(lang === 'tr' ? 'Tarif önerileri alınamadı.' : 'Could not fetch recipe suggestions.');
             }
         } catch (error: any) {
-            showAlert(t('error'), error.message || 'Unknown error occurred');
+            setError(error.message || 'Unknown error occurred');
         } finally {
             setAnalyzing(false);
         }
@@ -114,167 +116,156 @@ export default function RecipeAssistantScreen() {
                         {selectedImage ? (
                             <TouchableOpacity onPress={pickImage} activeOpacity={0.8}>
                                 <Image source={{ uri: selectedImage }} style={styles.preview} />
+                                <View style={styles.changePhotoBtn}>
+                                    <Text style={styles.changePhotoText}>{t('change_photo')}</Text>
+                                </View>
                             </TouchableOpacity>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Text style={styles.backBtnText}>← {t('back')}</Text>
-                </TouchableOpacity>
-                <Text style={styles.title}>{t('recipe_assistant')}</Text>
-                <View style={{ width: 60 }} />
-            </View>
+                        ) : (
+                            <TouchableOpacity style={styles.uploadArea} onPress={pickImage}>
+                                <View style={styles.uploadIconCircle}>
+                                    <Text style={styles.uploadIcon}>📸</Text>
+                                </View>
+                                <Text style={styles.uploadText}>{t('tap_to_upload')}</Text>
+                            </TouchableOpacity>
+                        )}
 
-            <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
-                <Text style={styles.subtitle}>
-                    {lang === 'tr' ? 'Elinizdeki malzemeler neler?' : 'What ingredients do you have?'}
-                </Text>
+                        <View style={styles.divider}>
+                            <Text style={styles.dividerText}>{t('or').toUpperCase()}</Text>
+                        </View>
 
-                <TextInput
-                    style={styles.input}
-                    placeholder={lang === 'tr' ? 'Örn: Tavuk, domates, pirinç...' : 'Ex: Chicken, tomato, rice...'}
-                    placeholderTextColor="#52525b"
-                    value={ingredients}
-                    onChangeText={(text) => { setIngredients(text); setError(null); }}
-                    multiline
-                />
+                        <TextInput
+                            style={styles.input}
+                            placeholder={lang === 'tr' ? 'Malzemeleri buraya yazın (örn: yumurta, domates)...' : 'Type ingredients (ex: eggs, tomato)...'}
+                            placeholderTextColor="#52525b"
+                            value={manualIngredients}
+                            onChangeText={setManualIngredients}
+                            multiline
+                        />
 
-                <Text style={styles.orText}>- {t('or')} -</Text>
+                        {error && (
+                            <View style={styles.errorContainer}>
+                                <Text style={styles.errorText}>⚠️ {error}</Text>
+                            </View>
+                        )}
 
-                <TouchableOpacity style={styles.pickBtn} onPress={pickImage}>
-                    <Text style={styles.pickBtnText}>
-                        {selectedImage ? (lang === 'tr' ? 'Fotoğraf Seçildi ✅' : 'Photo Selected ✅') : t('select_photo')}
-                    </Text>
-                </TouchableOpacity>
-
-                {selectedImage && (
-                    <Image source={{ uri: selectedImage }} style={styles.preview} />
-                )}
-
-                {error && (
-                    <View style={styles.errorContainer}>
-                        <Text style={styles.errorText}>⚠️ {error}</Text>
+                        <TouchableOpacity
+                            style={[styles.actionBtn, analyzing && styles.btnDisabled]}
+                            onPress={handleSuggest}
+                            disabled={analyzing}
+                        >
+                            {analyzing ? (
+                                <ActivityIndicator color="#000" />
+                            ) : (
+                                <Text style={styles.actionBtnText}>
+                                    {error ? (lang === 'tr' ? 'Tekrar Dene' : 'Try Again') : t('suggest_recipes')}
+                                </Text>
+                            )}
+                        </TouchableOpacity>
                     </View>
-                )}
 
-                <TouchableOpacity
-                    style={[styles.generateBtn, loading && styles.disabledBtn]}
-                    onPress={handleGetRecipes}
-                    disabled={loading}
-                >
-                    {loading ? (
-                        <ActivityIndicator color="#000" />
-                    ) : (
-                        <Text style={styles.generateBtnText}>
-                            {lang === 'tr' ? 'Tarif Öner' : 'Suggest Recipes'}
-                        </Text>
+                    {/* Results */}
+                    {recipes.length > 0 && (
+                        <View style={styles.resultsContainer}>
+                            <View style={styles.resultsHeader}>
+                                <Text style={styles.resultsTitle}>{t('suggested_recipes')}</Text>
+                                <Text style={styles.resultsCount}>{recipes.length} {t('results')}</Text>
+                            </View>
+
+                            {recipes.map((recipe, index) => (
+                                <View key={index} style={styles.recipeCard}>
+                                    <View style={styles.recipeHeader}>
+                                        <Text style={styles.recipeEmoji}>🍳</Text>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.recipeName}>{recipe.title}</Text>
+                                            <View style={styles.recipeMetaRow}>
+                                                <Text style={styles.recipeMeta}>{recipe.calories} kcal</Text>
+                                                <Text style={styles.recipeMetaDot}>•</Text>
+                                                <Text style={styles.recipeMeta}>{recipe.protein}g protein</Text>
+                                                <Text style={styles.recipeMetaDot}>•</Text>
+                                                <Text style={styles.recipeMeta}>{recipe.prep_time} {t('prep_time')}</Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                    <Text style={styles.recipeDesc}>{recipe.description}</Text>
+                                    {recipe.suitability_reason && (
+                                        <View style={styles.reasonBadge}>
+                                            <Text style={styles.reasonText}>{recipe.suitability_reason}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            ))}
+                        </View>
                     )}
-                </TouchableOpacity>
 
-                {recipes && (
-                    <View style={styles.resultCard}>
-                        <Text style={styles.resultTitle}>
-                            {lang === 'tr' ? 'Önerilen Tarifler:' : 'Suggested Recipes:'}
-                        </Text>
-                        <Text style={styles.resultText}>{recipes}</Text>
-                    </View>
-                )}
+                </Animated.View>
             </ScrollView>
         </SafeAreaView>
-                    );
+    );
 }
 
-                    const styles = StyleSheet.create({
-                        container: {flex: 1, backgroundColor: '#09090b' },
-                    header: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12 },
-                    backBtn: {paddingVertical: 8, paddingHorizontal: 4 },
-                    backBtnText: {color: '#71717a', fontSize: 14, fontWeight: '500' },
-                    cardSubtitle: {color: '#71717a', fontSize: 14, marginBottom: 24, lineHeight: 20 },
+const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#09090b' },
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
 
-                    // Image picker
-                    imagePicker: {
-                        height: 160,
-                    backgroundColor: 'rgba(255,255,255,0.02)',
-                    borderRadius: 16,
-                    borderStyle: 'dashed',
-                    borderWidth: 1.5,
-                    borderColor: 'rgba(34, 211, 238, 0.2)',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginBottom: 20,
-    },
-                    pickerIconBg: {
-                        width: 52, height: 52,
-                    backgroundColor: 'rgba(34, 211, 238, 0.1)',
-                    borderRadius: 16,
-                    justifyContent: 'center', alignItems: 'center',
-                    marginBottom: 12,
-    },
-                    pickerEmoji: {fontSize: 24 },
-                    pickerTitle: {color: '#e4e4e7', fontSize: 15, fontWeight: '600', marginBottom: 4 },
-                    pickerHint: {color: '#52525b', fontSize: 12 },
-                    preview: {width: '100%', height: 200, borderRadius: 16, marginBottom: 20 },
+    // Header
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, marginBottom: 10 },
+    backBtn: { padding: 8, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12 },
+    backBtnText: { color: '#e4e4e7', fontSize: 16, fontWeight: '500' },
+    headerCenter: { alignItems: 'center' },
+    logoIcon: { color: '#22d3ee', fontSize: 10, marginBottom: 4 },
+    title: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
 
-                    // Divider
-                    divider: {height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 4 },
-                    orText: {color: '#52525b', fontSize: 12, textAlign: 'center', marginVertical: 12 },
+    // Card
+    card: { backgroundColor: 'rgba(34, 211, 238, 0.03)', borderRadius: 24, padding: 24, borderWidth: 1, borderColor: 'rgba(34, 211, 238, 0.1)' },
+    cardBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(34, 211, 238, 0.1)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(34, 211, 238, 0.2)' },
+    badgeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#22d3ee', marginRight: 6 },
+    badgeText: { color: '#22d3ee', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+    cardTitle: { color: '#fff', fontSize: 28, fontWeight: '800', lineHeight: 34, marginBottom: 8 },
+    cardSubtitle: { color: '#a1a1aa', fontSize: 15, lineHeight: 22, marginBottom: 24 },
 
-                    // Input
-                    input: {
-                        backgroundColor: 'rgba(0,0,0,0.4)',
-                    borderRadius: 14,
-                    paddingHorizontal: 16,
-                    paddingVertical: 14,
-                    color: '#fff',
-                    fontSize: 15,
-                    minHeight: 80,
-                    textAlignVertical: 'top',
-                    borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.08)',
-                    marginBottom: 20,
-    },
+    // Inputs
+    uploadArea: { height: 160, backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 20, borderWidth: 2, borderColor: 'rgba(255,255,255,0.05)', borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+    uploadIconCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(34, 211, 238, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+    uploadIcon: { fontSize: 24 },
+    uploadText: { color: '#71717a', fontSize: 14, fontWeight: '500' },
 
-                    // CTA Button
-                    actionBtn: {
-                        backgroundColor: '#22d3ee',
-                    borderRadius: 14,
-                    paddingVertical: 16,
-                    alignItems: 'center',
-                    shadowColor: '#22d3ee',
-                    shadowOffset: {width: 0, height: 4 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 12,
-                    elevation: 8,
-    },
-                    btnDisabled: {opacity: 0.6 },
-                    actionBtnText: {color: '#000', fontSize: 16, fontWeight: '700' },
+    preview: { width: '100%', height: 200, borderRadius: 16, marginBottom: 12 },
+    changePhotoBtn: { position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+    changePhotoText: { color: '#fff', fontSize: 12, fontWeight: '600' },
 
-                    // Results
-                    resultsContainer: {marginTop: 32, zIndex: 10 },
-                    resultsHeader: {
-                        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16,
-    },
-                    resultsTitle: {color: '#fff', fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
-                    resultsCount: {color: '#22d3ee', fontSize: 13, fontWeight: '700' },
+    divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
+    dividerText: { color: '#52525b', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
 
-                    // Recipe Card
-                    recipeCard: {
-                        backgroundColor: 'rgba(255,255,255,0.03)',
-                    borderRadius: 20,
-                    padding: 20,
-                    marginBottom: 12,
-                    borderWidth: 1,
-                    borderColor: 'rgba(255,255,255,0.06)',
-    },
-                    recipeHeader: {flexDirection: 'row', gap: 12, marginBottom: 12, alignItems: 'flex-start' },
-                    recipeEmoji: {fontSize: 28, marginTop: 2 },
-                    recipeName: {color: '#22d3ee', fontSize: 17, fontWeight: '700', marginBottom: 4 },
-                    recipeMetaRow: {flexDirection: 'row', alignItems: 'center', gap: 8 },
-                    recipeMeta: {color: '#71717a', fontSize: 12, fontWeight: '500' },
-                    recipeMetaDot: {color: '#3f3f46', fontSize: 12 },
-                    recipeDesc: {color: '#a1a1aa', fontSize: 13, lineHeight: 20, marginBottom: 14 },
-                    reasonBadge: {
-                        backgroundColor: 'rgba(34, 211, 238, 0.08)',
-                    paddingHorizontal: 12, paddingVertical: 8,
-                    borderRadius: 10, alignSelf: 'flex-start',
-    },
-                    reasonText: {color: '#22d3ee', fontSize: 12, fontWeight: '600' },
+    input: { backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 16, padding: 16, color: '#fff', fontSize: 15, minHeight: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', marginBottom: 20 },
+
+    // Action Button
+    actionBtn: { backgroundColor: '#22d3ee', borderRadius: 16, paddingVertical: 18, alignItems: 'center', shadowColor: '#22d3ee', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 4 },
+    btnDisabled: { opacity: 0.7 },
+    actionBtnText: { color: '#000', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
+
+    // Error
+    errorContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: 12, borderRadius: 12, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)' },
+    errorText: { color: '#fca5a5', fontSize: 14, marginLeft: 8, flex: 1 },
+
+    // Results
+    resultsContainer: { marginTop: 32 },
+    resultsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+    resultsTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
+    resultsCount: { color: '#71717a', fontSize: 14 },
+
+    recipeCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+    recipeHeader: { flexDirection: 'row', marginBottom: 12 },
+    recipeEmoji: { fontSize: 32, marginRight: 12 },
+    recipeName: { color: '#fff', fontSize: 17, fontWeight: '700', marginBottom: 6 },
+    recipeMetaRow: { flexDirection: 'row', alignItems: 'center' },
+    recipeMeta: { color: '#a1a1aa', fontSize: 13 },
+    recipeMetaDot: { color: '#52525b', marginHorizontal: 6 },
+    recipeDesc: { color: '#a1a1aa', fontSize: 14, lineHeight: 20, marginBottom: 12 },
+    reasonBadge: { alignSelf: 'flex-start', backgroundColor: 'rgba(34, 211, 238, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+    reasonText: { color: '#22d3ee', fontSize: 12, fontWeight: '600' },
+
+    glowOrb: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: '#22d3ee', opacity: 0.15, filter: 'blur(80px)' },
+    glowOrb1: { top: -100, left: -100 },
+    glowOrb2: { bottom: -50, right: -50 },
 });
